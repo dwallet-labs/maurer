@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 pub use language::Language;
+pub use proof::Proof;
 
 pub mod language;
 mod proof;
@@ -17,6 +18,8 @@ pub enum Error {
     UnsupportedRepetitions,
     #[error("invalid parameters")]
     InvalidParameters,
+    #[error("serialization/deserialization error")]
+    Serialization(#[from] serde_json::Error),
     #[error("an internal error that should never have happened and signifies a bug")]
     InternalError,
 }

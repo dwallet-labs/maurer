@@ -6,6 +6,7 @@ use group::{ComputationalSecuritySizedNumber, GroupElement, Samplable};
 use serde::{Deserialize, Serialize};
 
 use crate::proof::{BIT_SOUNDNESS_PROOFS_REPETITIONS, SOUND_PROOFS_REPETITIONS};
+use crate::Result;
 
 /// A Maurer Zero-Knowledge Proof Language.
 ///
@@ -42,7 +43,7 @@ pub trait Language<
     const NAME: &'static str;
 
     /// The number of bits to use for the challenge
-    fn challenge_bits(batch_size: usize) -> crate::Result<usize> {
+    fn challenge_bits(batch_size: usize) -> Result<usize> {
         if REPETITIONS == SOUND_PROOFS_REPETITIONS {
             // When batching $N_B$ statements, the challenge space $\bE$ is adjusted to be $[0,\BatchSize
             // \cdot 2^{\kappa+2})$.
@@ -67,7 +68,7 @@ pub trait Language<
     fn homomorphose(
         witness: &Self::WitnessSpaceGroupElement,
         language_public_parameters: &Self::PublicParameters,
-    ) -> crate::Result<Self::StatementSpaceGroupElement>;
+    ) -> Result<Self::StatementSpaceGroupElement>;
 }
 
 pub type PublicParameters<const REPETITIONS: usize, L> =
