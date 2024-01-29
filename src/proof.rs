@@ -383,3 +383,231 @@ impl<
         })
     }
 }
+
+#[cfg(any(test, feature = "benchmarking"))]
+pub(crate) mod tests {
+    use std::marker::PhantomData;
+
+    use rand_core::OsRng;
+
+    use crate::Language;
+    use crate::language::tests::{generate_witness, generate_witnesses};
+
+    use super::*;
+
+    pub(crate) fn generate_valid_proof<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
+        language_public_parameters: &Lang::PublicParameters,
+        witnesses: Vec<Lang::WitnessSpaceGroupElement>,
+    ) -> (
+        Proof<REPETITIONS, Lang, PhantomData<()>>,
+        Vec<Lang::StatementSpaceGroupElement>,
+    ) {
+        Proof::prove(
+            &PhantomData,
+            language_public_parameters,
+            witnesses,
+            &mut OsRng,
+        )
+            .unwrap()
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn valid_proof_verifies<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
+        language_public_parameters: Lang::PublicParameters,
+        batch_size: usize,
+    ) {
+        let witnesses =
+            generate_witnesses::<REPETITIONS, Lang>(&language_public_parameters, batch_size);
+
+        valid_proof_verifies_internal::<REPETITIONS, Lang>(
+            language_public_parameters,
+            witnesses,
+        )
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn valid_proof_verifies_internal<
+        const REPETITIONS: usize,
+        Lang: Language<REPETITIONS>,
+    >(
+        language_public_parameters: Lang::PublicParameters,
+        witnesses: Vec<Lang::WitnessSpaceGroupElement>,
+    ) {
+        let (proof, statements) = generate_valid_proof::<REPETITIONS, Lang>(
+            &language_public_parameters,
+            witnesses.clone(),
+        );
+
+        assert!(
+            proof
+                .verify(&PhantomData, &language_public_parameters, statements)
+                .is_ok(),
+            "valid proofs should verify"
+        );
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn invalid_proof_fails_verification<
+        const REPETITIONS: usize,
+        Lang: Language<REPETITIONS>,
+    >(
+        invalid_witness_space_value: Option<WitnessSpaceValue<REPETITIONS, Lang>>,
+        invalid_statement_space_value: Option<StatementSpaceValue<REPETITIONS, Lang>>,
+        language_public_parameters: Lang::PublicParameters,
+        batch_size: usize,
+    ) {
+        let witnesses =
+            generate_witnesses::<REPETITIONS, Lang>(&language_public_parameters, batch_size);
+
+        let (valid_proof, statements) = generate_valid_proof::<REPETITIONS, Lang>(
+            &language_public_parameters,
+            witnesses.clone(),
+        );
+
+        let wrong_witness =
+            generate_witness::<REPETITIONS, Lang>(&language_public_parameters);
+
+        let wrong_statement =
+            Lang::homomorphose(&wrong_witness, &language_public_parameters).unwrap();
+
+        assert!(
+            matches!(
+                valid_proof
+                    .verify(
+                        &PhantomData,
+                        &language_public_parameters,
+                        statements
+                            .clone()
+                            .into_iter()
+                            .take(batch_size - 1)
+                            .chain(vec![wrong_statement.clone()])
+                            .collect(),
+                    )
+                    .err()
+                    .unwrap(),
+                Error::Proof(proof::Error::ProofVerification)
+            ),
+            "valid proof shouldn't verify against wrong statements"
+        );
+
+        let mut invalid_proof = valid_proof.clone();
+        invalid_proof.responses = [wrong_witness.value(); REPETITIONS];
+
+        assert!(
+            matches!(
+                invalid_proof
+                    .verify(
+                        &PhantomData,
+                        &language_public_parameters,
+                        statements.clone(),
+                    )
+                    .err()
+                    .unwrap(),
+                Error::Proof(proof::Error::ProofVerification)
+            ),
+            "proof with a wrong response shouldn't verify"
+        );
+
+        let mut invalid_proof = valid_proof.clone();
+        invalid_proof.statement_masks = [wrong_statement.neutral().value(); REPETITIONS];
+
+        assert!(
+            matches!(
+                invalid_proof
+                    .verify(
+                        &PhantomData,
+                        &language_public_parameters,
+                        statements.clone(),
+                    )
+                    .err()
+                    .unwrap(),
+                Error::Proof(proof::Error::ProofVerification)
+            ),
+            "proof with a neutral statement_mask shouldn't verify"
+        );
+
+        let mut invalid_proof = valid_proof.clone();
+        invalid_proof.responses = [wrong_witness.neutral().value(); REPETITIONS];
+
+        assert!(
+            matches!(
+                invalid_proof
+                    .verify(
+                        &PhantomData,
+                        &language_public_parameters,
+                        statements.clone(),
+                    )
+                    .err()
+                    .unwrap(),
+                Error::Proof(proof::Error::ProofVerification)
+            ),
+            "proof with a neutral response shouldn't verify"
+        );
+
+        if let Some(invalid_statement_space_value) = invalid_statement_space_value {
+            let mut invalid_proof = valid_proof.clone();
+            invalid_proof.statement_masks = [invalid_statement_space_value; REPETITIONS];
+
+            assert!(matches!(
+            invalid_proof
+                .verify(
+                    &PhantomData,
+                    &language_public_parameters,
+                    statements.clone(),
+                )
+                .err()
+                .unwrap(),
+            Error::GroupInstantiation(group::Error::InvalidGroupElement)),
+                    "proof with an invalid statement_mask value should generate an invalid parameter error when checking the element is not in the group"
+            );
+        }
+
+        if let Some(invalid_witness_space_value) = invalid_witness_space_value {
+            let mut invalid_proof = valid_proof.clone();
+            invalid_proof.responses = [invalid_witness_space_value; REPETITIONS];
+
+            assert!(matches!(
+            invalid_proof
+                .verify(
+                    &PhantomData,
+                    &language_public_parameters,
+                    statements.clone(),
+                )
+                .err()
+                .unwrap(),
+            Error::GroupInstantiation(group::Error::InvalidGroupElement)),
+                    "proof with an invalid response value should generate an invalid parameter error when checking the element is not in the group"
+            );
+        }
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn proof_over_invalid_public_parameters_fails_verification<
+        const REPETITIONS: usize,
+        Lang: Language<REPETITIONS>,
+    >(
+        prover_language_public_parameters: Lang::PublicParameters,
+        verifier_language_public_parameters: Lang::PublicParameters,
+        witnesses: Vec<Lang::WitnessSpaceGroupElement>,
+    ) {
+        let (proof, statements) = generate_valid_proof::<REPETITIONS, Lang>(
+            &prover_language_public_parameters,
+            witnesses.clone(),
+        );
+
+        assert!(
+            matches!(
+                proof
+                    .verify(
+                        &PhantomData,
+                        &verifier_language_public_parameters,
+                        statements,
+                    )
+                    .err()
+                    .unwrap(),
+                Error::Proof(proof::Error::ProofVerification)
+            ),
+            "proof over wrong public parameters shouldn't verify"
+        );
+    }
+}
