@@ -9,7 +9,7 @@ use crate::language::GroupsPublicParameters;
 use crate::Result;
 use crate::SOUND_PROOFS_REPETITIONS;
 
-/// Knowledge of Discrete Log Maurer Language.
+/// Schnorr's Knowledge of Discrete Log Maurer Language.
 ///
 /// SECURITY NOTICE:
 /// Because correctness and zero-knowledge is guaranteed for any group in this language, we choose
@@ -44,7 +44,7 @@ impl<
         group::Value<GroupElement>,
     >;
 
-    const NAME: &'static str = "Knowledge of the Discrete Log";
+    const NAME: &'static str = "Schnorr's Knowledge of the Discrete Log";
 
     fn homomorphose(
         witness: &Self::WitnessSpaceGroupElement,
@@ -61,7 +61,7 @@ impl<
     }
 }
 
-/// The Public Parameters of the Knowledge of Discrete Log Maurer Language.
+/// The Public Parameters of Schnorr's Knowledge of Discrete Log Maurer Language.
 #[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct PublicParameters<ScalarPublicParameters, GroupPublicParameters, GroupElementValue> {
     pub groups_public_parameters:
