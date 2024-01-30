@@ -236,7 +236,9 @@ PublicParameters<
 mod tests {
     use commitment::pedersen;
     use commitment::pedersen::Pedersen;
-    use group::secp256k1;
+    use crypto_bigint::U256;
+    use group::{GroupElement, secp256k1};
+    use rand_core::OsRng;
     use rstest::rstest;
 
     use crate::{language, test_helpers};
@@ -285,8 +287,9 @@ mod tests {
         let language_public_parameters = language_public_parameters();
 
         test_helpers::valid_proof_verifies::<SOUND_PROOFS_REPETITIONS, Lang>(
-            language_public_parameters,
+            &language_public_parameters,
             batch_size,
+            &mut OsRng,
         )
     }
 
@@ -303,8 +306,63 @@ mod tests {
         test_helpers::invalid_proof_fails_verification::<SOUND_PROOFS_REPETITIONS, Lang>(
             None,
             None,
-            language_public_parameters,
+            &language_public_parameters,
             batch_size,
+            &mut OsRng,
+        )
+    }
+
+    #[rstest]
+    #[case(1)]
+    #[case(2)]
+    #[case(3)]
+    fn proof_over_invalid_public_parameters_fails_verification(#[case] batch_size: usize) {
+        let verifier_public_parameters = language_public_parameters();
+        let mut prover_public_parameters = verifier_public_parameters.clone();
+
+        let secp256k1_group_public_parameters =
+            secp256k1::group_element::PublicParameters::default();
+        prover_public_parameters.base = secp256k1::GroupElement::new(prover_public_parameters.base, &secp256k1_group_public_parameters).unwrap().neutral().value();
+
+        test_helpers::proof_over_invalid_public_parameters_fails_verification::<SOUND_PROOFS_REPETITIONS, Lang>(
+            &prover_public_parameters,
+            &verifier_public_parameters,
+            batch_size,
+            &mut OsRng,
+        );
+
+        let mut prover_public_parameters = verifier_public_parameters.clone();
+        prover_public_parameters.groups_public_parameters.statement_space_public_parameters.public_parameters.curve_equation_a = U256::from(42u8);
+
+        test_helpers::proof_over_invalid_public_parameters_fails_verification::<SOUND_PROOFS_REPETITIONS, Lang>(
+            &prover_public_parameters,
+            &verifier_public_parameters,
+            batch_size,
+            &mut OsRng,
+        );
+
+        let mut prover_public_parameters = verifier_public_parameters.clone();
+        prover_public_parameters.commitment_scheme_public_parameters.message_generators[0] = prover_public_parameters.commitment_scheme_public_parameters.randomness_generator;
+
+        test_helpers::proof_over_invalid_public_parameters_fails_verification::<SOUND_PROOFS_REPETITIONS, Lang>(
+            &prover_public_parameters,
+            &verifier_public_parameters,
+            batch_size,
+            &mut OsRng,
+        );
+    }
+
+    #[rstest]
+    #[case(1)]
+    #[case(2)]
+    #[case(3)]
+    fn proof_with_incomplete_transcript_fails(#[case] batch_size: usize) {
+        let language_public_parameters = language_public_parameters();
+
+        test_helpers::proof_with_incomplete_transcript_fails::<SOUND_PROOFS_REPETITIONS, Lang>(
+            &language_public_parameters,
+            batch_size,
+            &mut OsRng,
         )
     }
 }

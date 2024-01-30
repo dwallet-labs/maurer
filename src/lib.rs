@@ -21,6 +21,8 @@ pub enum Error {
     GroupInstantiation(#[from] group::Error),
     #[error("proof error")]
     Proof(#[from] ::proof::Error),
+    #[error("commitment error")]
+    Commitment(#[from] commitment::Error),
     #[error("unsupported repetitions: must be either 1 or 128")]
     UnsupportedRepetitions,
     #[error("invalid parameters")]
