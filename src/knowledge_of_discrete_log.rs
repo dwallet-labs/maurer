@@ -180,16 +180,17 @@ mod tests {
     fn proof_over_invalid_public_parameters_fails_verification(#[case] batch_size: usize) {
         let verifier_public_parameters = language_public_parameters();
         let mut prover_public_parameters = verifier_public_parameters.clone();
+
         let secp256k1_group_public_parameters =
             secp256k1::group_element::PublicParameters::default();
-        prover_public_parameters.generator = secp256k1::GroupElement::new(prover_public_parameters.generator, secp256k1_group_public_parameters).unwrap().neutral().value();
+        prover_public_parameters.generator = secp256k1::GroupElement::new(prover_public_parameters.generator, &secp256k1_group_public_parameters).unwrap().neutral().value();
 
         test_helpers::proof_over_invalid_public_parameters_fails_verification::<SOUND_PROOFS_REPETITIONS, Lang>(
             prover_public_parameters,
             verifier_public_parameters,
             batch_size,
             &mut OsRng,
-        )
+        );
     }
 
     // TODO: other tests
