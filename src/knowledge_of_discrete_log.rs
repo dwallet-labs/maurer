@@ -218,7 +218,7 @@ mod tests {
 }
 
 #[cfg(feature = "benchmarking")]
-mod benches {
+pub mod benches {
     use criterion::Criterion;
 
     use crate::knowledge_of_discrete_log::tests::{Lang, language_public_parameters};

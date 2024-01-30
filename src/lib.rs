@@ -37,5 +37,5 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[cfg(feature = "benchmarking")]
 criterion::criterion_group!(
     benches,
-    knowledge_of_discrete_log::benchmark
+    knowledge_of_discrete_log::benches::benchmark,
 );
