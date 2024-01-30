@@ -21,6 +21,8 @@ rstest = { version = "0.18", optional = true }
 [dev-dependencies]
 rstest = { version = "0.18" }
 rand_core = { version = "0.6", features = ["std"] }
+commitment = { git = "https://github.com/dwallet-labs/commitment.git", branch = "pedersen" }
+
 
 [features]
 # This feature is for internal-use only (for benchmarking) and exists due to limitations of benchmarking non-public functions in Rust.

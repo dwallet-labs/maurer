@@ -6,6 +6,7 @@ pub use proof::{BIT_SOUNDNESS_PROOFS_REPETITIONS, Proof, SOUND_PROOFS_REPETITION
 
 pub mod language;
 mod proof;
+pub mod committment_of_discrete_log;
 pub mod knowledge_of_discrete_log;
 
 pub mod test_helpers {
@@ -33,9 +34,9 @@ pub enum Error {
 /// Maurer result.
 pub type Result<T> = std::result::Result<T, Error>;
 
-
 #[cfg(feature = "benchmarking")]
 criterion::criterion_group!(
     benches,
-    knowledge_of_discrete_log::benchmark
+    knowledge_of_discrete_log::benches::benchmark,
+    committment_of_discrete_log::benches::benchmark
 );
