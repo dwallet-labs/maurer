@@ -19,6 +19,7 @@ rand_core = { version = "0.6", features = ["std"], optional = true }
 rstest = { version = "0.18", optional = true }
 
 [dev-dependencies]
+rstest = { version = "0.18" }
 rand_core = { version = "0.6", features = ["std"] }
 
 [features]

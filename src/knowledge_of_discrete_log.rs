@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 pub(crate) use benches::benchmark;
 
 use crate::language::GroupsPublicParameters;
+use crate::Result;
 use crate::SOUND_PROOFS_REPETITIONS;
 
 /// Knowledge of Discrete Log Maurer Language.
@@ -51,7 +52,7 @@ impl<
     fn homomorphose(
         witness: &Self::WitnessSpaceGroupElement,
         language_public_parameters: &Self::PublicParameters,
-    ) -> proofs::Result<Self::StatementSpaceGroupElement> {
+    ) -> Result<Self::StatementSpaceGroupElement> {
         let generator = GroupElement::new(
             language_public_parameters.generator,
             &language_public_parameters
@@ -113,14 +114,15 @@ for PublicParameters<ScalarPublicParameters, GroupPublicParameters, GroupElement
 }
 
 pub type Proof<Scalar, GroupElement, ProtocolContext> =
-maurer::Proof<{ SOUND_PROOFS_REPETITIONS }, Language<Scalar, GroupElement>, ProtocolContext>;
+crate::Proof<SOUND_PROOFS_REPETITIONS, Language<Scalar, GroupElement>, ProtocolContext>;
 
 #[cfg(any(test, feature = "benchmarking"))]
 mod tests {
     use group::secp256k1;
+    use rand_core::OsRng;
     use rstest::rstest;
 
-    use crate::language;
+    use crate::{language, test_helpers};
 
     use super::*;
 
@@ -145,9 +147,10 @@ mod tests {
     fn valid_proof_verifies(#[case] batch_size: usize) {
         let language_public_parameters = language_public_parameters();
 
-        proof::tests::valid_proof_verifies::<SOUND_PROOFS_REPETITIONS, Lang>(
+        test_helpers::valid_proof_verifies::<SOUND_PROOFS_REPETITIONS, Lang>(
             language_public_parameters,
             batch_size,
+            &mut OsRng,
         )
     }
 
@@ -161,11 +164,12 @@ mod tests {
         // No invalid values as secp256k1 statically defines group,
         // `k256::AffinePoint` assures deserialized values are on curve,
         // and `Value` can only be instantiated through deserialization
-        proof::tests::invalid_proof_fails_verification::<SOUND_PROOFS_REPETITIONS, Lang>(
+        test_helpers::invalid_proof_fails_verification::<SOUND_PROOFS_REPETITIONS, Lang>(
             None,
             None,
             language_public_parameters,
             batch_size,
+            &mut OsRng,
         )
     }
 

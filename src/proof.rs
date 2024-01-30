@@ -780,7 +780,7 @@ pub(crate) mod benches {
     use criterion::Criterion;
     use rand_core::OsRng;
 
-    use crate::{language::tests::generate_witnesses, Proof, Result};
+    use crate::{Proof, Result, test_helpers::generate_witnesses};
 
     use super::*;
 
@@ -801,7 +801,7 @@ pub(crate) mod benches {
 
         for batch_size in [1, 10, 100, 1000] {
             let witnesses =
-                generate_witnesses::<REPETITIONS, Language>(&language_public_parameters, batch_size);
+                generate_witnesses::<REPETITIONS, Language>(&language_public_parameters, batch_size, &mut OsRng);
 
             let statements: Result<Vec<_>> = witnesses
                 .iter()
