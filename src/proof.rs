@@ -389,7 +389,7 @@ impl<
 }
 
 #[cfg(any(test, feature = "benchmarking"))]
-pub(crate) mod tests {
+pub(super) mod test_helpers {
     use std::marker::PhantomData;
 
     use rand_core::OsRng;
@@ -398,7 +398,7 @@ pub(crate) mod tests {
 
     use super::*;
 
-    pub(crate) fn generate_valid_proof<const REPETITIONS: usize, Language: language::Language<REPETITIONS>>(
+    pub fn generate_valid_proof<const REPETITIONS: usize, Language: language::Language<REPETITIONS>>(
         language_public_parameters: &Language::PublicParameters,
         witnesses: Vec<Language::WitnessSpaceGroupElement>,
     ) -> (
@@ -414,8 +414,7 @@ pub(crate) mod tests {
             .unwrap()
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn valid_proof_verifies<const REPETITIONS: usize, Language: language::Language<REPETITIONS>>(
+    pub fn valid_proof_verifies<const REPETITIONS: usize, Language: language::Language<REPETITIONS>>(
         language_public_parameters: Language::PublicParameters,
         batch_size: usize,
     ) {
@@ -428,8 +427,7 @@ pub(crate) mod tests {
         )
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn valid_proof_verifies_internal<
+    pub fn valid_proof_verifies_internal<
         const REPETITIONS: usize,
         Language: language::Language<REPETITIONS>,
     >(
@@ -449,8 +447,7 @@ pub(crate) mod tests {
         );
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn invalid_proof_fails_verification<
+    pub fn invalid_proof_fails_verification<
         const REPETITIONS: usize,
         Language: language::Language<REPETITIONS>,
     >(
@@ -584,8 +581,7 @@ pub(crate) mod tests {
         }
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn proof_over_invalid_public_parameters_fails_verification<
+    pub fn proof_over_invalid_public_parameters_fails_verification<
         const REPETITIONS: usize,
         Language: language::Language<REPETITIONS>,
     >(
@@ -662,8 +658,7 @@ pub(crate) mod tests {
     }
 
     /// Test weak Fiat-Shamir attacks.
-    #[allow(dead_code)]
-    pub(crate) fn proof_with_incomplete_transcript_fails<
+    pub fn proof_with_incomplete_transcript_fails<
         const REPETITIONS: usize,
         Language: language::Language<REPETITIONS>,
     >(
