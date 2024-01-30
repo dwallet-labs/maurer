@@ -53,16 +53,12 @@ impl<
 > Proof<REPETITIONS, Language, ProtocolContext>
 {
     pub(super) fn new(
-        statement_masks: &[Language::StatementSpaceGroupElement; REPETITIONS],
-        responses: &[Language::WitnessSpaceGroupElement; REPETITIONS],
+        statement_masks: [group::Value<Language::StatementSpaceGroupElement>; REPETITIONS],
+        responses: [group::Value<Language::WitnessSpaceGroupElement>; REPETITIONS],
     ) -> Self {
-        // TODO: this is the second time, after adding to transcript, that we call `.value()` for
-        // statement masks. Also, maybe get the values as parameter directly
         Self {
-            statement_masks: statement_masks
-                .clone()
-                .map(|statement_mask| statement_mask.value()),
-            responses: responses.clone().map(|response| response.value()),
+            statement_masks,
+            responses,
             _protocol_context_choice: PhantomData,
         }
     }
@@ -154,6 +150,10 @@ impl<
 
         let batch_size = witnesses.len();
 
+        let statement_masks_values = statement_masks
+            .clone()
+            .map(|statement_mask| statement_mask.value());
+
         let mut transcript = Self::setup_transcript(
             protocol_context,
             language_public_parameters,
@@ -161,13 +161,8 @@ impl<
                 .iter()
                 .map(|statement| statement.value())
                 .collect(),
-            &statement_masks
-                .clone()
-                .map(|statement_mask| statement_mask.value()),
+            &statement_masks_values,
         )?;
-
-        // TODO: maybe sample should also return the value, so no expensive conversion is necessairy
-        // with `.value()`?
 
         let challenges: [Vec<ChallengeSizedNumber>; REPETITIONS] =
             Self::compute_challenges(batch_size, &mut transcript);
@@ -200,26 +195,24 @@ impl<
                         |witnesses_and_challenges_linear_combination| {
                             randomizer + witnesses_and_challenges_linear_combination
                         },
-                    )
+                    ).value()
             })
             .collect::<Vec<_>>()
             .try_into()
             .map_err(|_| crate::Error::InternalError)?;
 
-        Ok(Self::new(&statement_masks, &responses))
+        Ok(Self::new(statement_masks_values, responses))
     }
 
     /// Verify a batched Maurer zero-knowledge proof.
+    ///
+
     pub fn verify(
         &self,
         protocol_context: &ProtocolContext,
         language_public_parameters: &Language::PublicParameters,
         statements: Vec<Language::StatementSpaceGroupElement>,
     ) -> Result<()> {
-        let batch_size = statements.len();
-
-        // TODO: maybe here we can get statements as values already, esp. if we sample them this
-        // way?
         let mut transcript = Self::setup_transcript(
             protocol_context,
             language_public_parameters,
@@ -230,8 +223,19 @@ impl<
             &self.statement_masks,
         )?;
 
+        self.verify_inner(&mut transcript, language_public_parameters, statements)
+    }
+
+    pub(crate) fn verify_inner(
+        &self,
+        transcript: &mut Transcript,
+        language_public_parameters: &Language::PublicParameters,
+        statements: Vec<Language::StatementSpaceGroupElement>,
+    ) -> Result<()> {
+        let batch_size = statements.len();
+
         let challenges: [Vec<ChallengeSizedNumber>; REPETITIONS] =
-            Self::compute_challenges(batch_size, &mut transcript);
+            Self::compute_challenges(batch_size, transcript);
 
         let responses = self
             .responses
