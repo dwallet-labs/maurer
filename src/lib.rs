@@ -6,6 +6,10 @@ pub use language::Language;
 pub mod language;
 mod proof;
 
+pub mod test_helpers {
+    pub use crate::language::test_helpers::*;
+}
+
 /// Maurer error.
 #[derive(thiserror::Error, Debug)]
 pub enum Error {

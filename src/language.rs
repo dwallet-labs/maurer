@@ -120,23 +120,22 @@ GroupsPublicParametersAccessors<
 > for T
 {}
 
-#[cfg(any(test, feature = "benchmarking"))]
-pub(crate) mod tests {
-    use std::iter;
+pub(super) mod test_helpers {
+    use core::iter;
 
-    use rand_core::OsRng;
+    use crypto_bigint::rand_core::CryptoRngCore;
 
     use super::*;
 
-    #[allow(dead_code)]
-    pub(crate) fn generate_witnesses<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
+    pub fn generate_witnesses<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
         language_public_parameters: &Lang::PublicParameters,
         batch_size: usize,
+        rng: &mut impl CryptoRngCore,
     ) -> Vec<Lang::WitnessSpaceGroupElement> {
         iter::repeat_with(|| {
             Lang::WitnessSpaceGroupElement::sample(
                 language_public_parameters.witness_space_public_parameters(),
-                &mut OsRng,
+                rng,
             )
                 .unwrap()
         })
@@ -144,27 +143,27 @@ pub(crate) mod tests {
             .collect()
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn generate_witnesses_for_aggregation<
+    pub fn generate_witnesses_for_aggregation<
         const REPETITIONS: usize,
         Lang: Language<REPETITIONS>,
     >(
         language_public_parameters: &Lang::PublicParameters,
         number_of_parties: usize,
         batch_size: usize,
+        rng: &mut impl CryptoRngCore,
     ) -> Vec<Vec<Lang::WitnessSpaceGroupElement>> {
         iter::repeat_with(|| {
-            generate_witnesses::<REPETITIONS, Lang>(language_public_parameters, batch_size)
+            generate_witnesses::<REPETITIONS, Lang>(language_public_parameters, batch_size, rng)
         })
             .take(number_of_parties)
             .collect()
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn generate_witness<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
+    pub fn generate_witness<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
         language_public_parameters: &Lang::PublicParameters,
+        rng: &mut impl CryptoRngCore,
     ) -> Lang::WitnessSpaceGroupElement {
-        let witnesses = generate_witnesses::<REPETITIONS, Lang>(language_public_parameters, 1);
+        let witnesses = generate_witnesses::<REPETITIONS, Lang>(language_public_parameters, 1, rng);
 
         witnesses.first().unwrap().clone()
     }
