@@ -413,12 +413,12 @@ pub(super) mod test_helpers {
     }
 
     pub fn valid_proof_verifies<const REPETITIONS: usize, Language: language::Language<REPETITIONS>>(
-        language_public_parameters: Language::PublicParameters,
+        language_public_parameters: &Language::PublicParameters,
         batch_size: usize,
         rng: &mut impl CryptoRngCore,
     ) {
         let witnesses =
-            generate_witnesses::<REPETITIONS, Language>(&language_public_parameters, batch_size, rng);
+            generate_witnesses::<REPETITIONS, Language>(language_public_parameters, batch_size, rng);
 
         valid_proof_verifies_internal::<REPETITIONS, Language>(
             language_public_parameters,
@@ -431,19 +431,19 @@ pub(super) mod test_helpers {
         const REPETITIONS: usize,
         Language: language::Language<REPETITIONS>,
     >(
-        language_public_parameters: Language::PublicParameters,
+        language_public_parameters: &Language::PublicParameters,
         witnesses: Vec<Language::WitnessSpaceGroupElement>,
         rng: &mut impl CryptoRngCore,
     ) {
         let (proof, statements) = generate_valid_proof::<REPETITIONS, Language>(
-            &language_public_parameters,
+            language_public_parameters,
             witnesses.clone(),
             rng,
         );
 
         assert!(
             proof
-                .verify(&PhantomData, &language_public_parameters, statements)
+                .verify(&PhantomData, language_public_parameters, statements)
                 .is_ok(),
             "valid proofs should verify"
         );
@@ -455,31 +455,31 @@ pub(super) mod test_helpers {
     >(
         invalid_witness_space_value: Option<WitnessSpaceValue<REPETITIONS, Language>>,
         invalid_statement_space_value: Option<StatementSpaceValue<REPETITIONS, Language>>,
-        language_public_parameters: Language::PublicParameters,
+        language_public_parameters: &Language::PublicParameters,
         batch_size: usize,
         rng: &mut impl CryptoRngCore,
     ) {
         let witnesses =
-            generate_witnesses::<REPETITIONS, Language>(&language_public_parameters, batch_size, rng);
+            generate_witnesses::<REPETITIONS, Language>(language_public_parameters, batch_size, rng);
 
         let (valid_proof, statements) = generate_valid_proof::<REPETITIONS, Language>(
-            &language_public_parameters,
+            language_public_parameters,
             witnesses.clone(),
             rng,
         );
 
         let wrong_witness =
-            generate_witness::<REPETITIONS, Language>(&language_public_parameters, rng);
+            generate_witness::<REPETITIONS, Language>(language_public_parameters, rng);
 
         let wrong_statement =
-            Language::homomorphose(&wrong_witness, &language_public_parameters).unwrap();
+            Language::homomorphose(&wrong_witness, language_public_parameters).unwrap();
 
         assert!(
             matches!(
                 valid_proof
                     .verify(
                         &PhantomData,
-                        &language_public_parameters,
+                        language_public_parameters,
                         statements
                             .clone()
                             .into_iter()
@@ -502,7 +502,7 @@ pub(super) mod test_helpers {
                 invalid_proof
                     .verify(
                         &PhantomData,
-                        &language_public_parameters,
+                        language_public_parameters,
                         statements.clone(),
                     )
                     .err()
@@ -520,7 +520,7 @@ pub(super) mod test_helpers {
                 invalid_proof
                     .verify(
                         &PhantomData,
-                        &language_public_parameters,
+                        language_public_parameters,
                         statements.clone(),
                     )
                     .err()
@@ -538,7 +538,7 @@ pub(super) mod test_helpers {
                 invalid_proof
                     .verify(
                         &PhantomData,
-                        &language_public_parameters,
+                        language_public_parameters,
                         statements.clone(),
                     )
                     .err()
@@ -556,7 +556,7 @@ pub(super) mod test_helpers {
             invalid_proof
                 .verify(
                     &PhantomData,
-                    &language_public_parameters,
+                    language_public_parameters,
                     statements.clone(),
                 )
                 .err()
@@ -574,7 +574,7 @@ pub(super) mod test_helpers {
             invalid_proof
                 .verify(
                     &PhantomData,
-                    &language_public_parameters,
+                    language_public_parameters,
                     statements.clone(),
                 )
                 .err()
@@ -590,8 +590,8 @@ pub(super) mod test_helpers {
         const REPETITIONS: usize,
         Language: language::Language<REPETITIONS>,
     >(
-        prover_language_public_parameters: Language::PublicParameters,
-        verifier_language_public_parameters: Language::PublicParameters,
+        prover_language_public_parameters: &Language::PublicParameters,
+        verifier_language_public_parameters: &Language::PublicParameters,
         batch_size: usize,
         rng: &mut impl CryptoRngCore,
     ) {
@@ -640,12 +640,12 @@ pub(super) mod test_helpers {
 
             transcript.serialize_to_transcript_as_json(
                 b"witness space public parameters",
-                language_public_parameters.witness_space_public_parameters(),
+                &language_public_parameters.witness_space_public_parameters(),
             ).unwrap();
 
             transcript.serialize_to_transcript_as_json(
                 b"statement space public parameters",
-                language_public_parameters.statement_space_public_parameters(),
+                &language_public_parameters.statement_space_public_parameters(),
             )
         });
 
@@ -672,17 +672,17 @@ pub(super) mod test_helpers {
         const REPETITIONS: usize,
         Language: language::Language<REPETITIONS>,
     >(
-        language_public_parameters: Language::PublicParameters,
+        language_public_parameters: &Language::PublicParameters,
         batch_size: usize,
         rng: &mut impl CryptoRngCore,
     ) {
         let witnesses =
-            generate_witnesses::<REPETITIONS, Language>(&language_public_parameters, batch_size, rng);
+            generate_witnesses::<REPETITIONS, Language>(language_public_parameters, batch_size, rng);
         let protocol_context = "valid protocol context".to_string();
         let (proof, statements) =
             Proof::<REPETITIONS, Language, String>::prove(
                 &protocol_context,
-                &language_public_parameters,
+                language_public_parameters,
                 witnesses,
                 rng,
             )
@@ -700,7 +700,7 @@ pub(super) mod test_helpers {
                     Some(language_public_parameters.clone()),
                     Some(statement_values.clone()),
                     Some(proof.statement_masks.clone()),
-                ), &language_public_parameters, statements.clone())
+                ), language_public_parameters, statements.clone())
                 .is_ok(),
             "proofs with complete transcripts should verify"
         );
@@ -713,7 +713,7 @@ pub(super) mod test_helpers {
                     Some(language_public_parameters.clone()),
                     Some(statement_values.clone()),
                     Some(proof.statement_masks.clone()),
-                ), &language_public_parameters, statements.clone()).err()
+                ), language_public_parameters, statements.clone()).err()
                 .unwrap(),
             Error::Proof(proof::Error::ProofVerification),),
                 "proofs with incomplete transcripts (missing language name) should fail"
@@ -727,7 +727,7 @@ pub(super) mod test_helpers {
                     Some(language_public_parameters.clone()),
                     Some(statement_values.clone()),
                     Some(proof.statement_masks.clone()),
-                ), &language_public_parameters, statements.clone()).err()
+                ), language_public_parameters, statements.clone()).err()
                 .unwrap(),
             Error::Proof(proof::Error::ProofVerification),),
                 "proofs with incomplete transcripts (missing protocol context) should fail"
@@ -741,7 +741,7 @@ pub(super) mod test_helpers {
                     None,
                     Some(statement_values.clone()),
                     Some(proof.statement_masks.clone()),
-                ), &language_public_parameters, statements.clone()).err()
+                ), language_public_parameters, statements.clone()).err()
                 .unwrap(),
             Error::Proof(proof::Error::ProofVerification),),
                 "proofs with incomplete transcripts (missing public parameters) should fail"
@@ -755,7 +755,7 @@ pub(super) mod test_helpers {
                     Some(language_public_parameters.clone()),
                     None,
                     Some(proof.statement_masks.clone()),
-                ), &language_public_parameters, statements.clone()).err()
+                ), language_public_parameters, statements.clone()).err()
                 .unwrap(),
             Error::Proof(proof::Error::ProofVerification),),
                 "proofs with incomplete transcripts (missing statements) should fail"
@@ -769,7 +769,7 @@ pub(super) mod test_helpers {
                     Some(language_public_parameters.clone()),
                     Some(statement_values.clone()),
                     None,
-                ), &language_public_parameters, statements.clone()).err()
+                ), language_public_parameters, statements.clone()).err()
                 .unwrap(),
             Error::Proof(proof::Error::ProofVerification),),
                 "proofs with incomplete transcripts (missing statement masks) should fail"
