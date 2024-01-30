@@ -202,7 +202,19 @@ mod tests {
         );
     }
 
-    // TODO: other tests
+    #[rstest]
+    #[case(1)]
+    #[case(2)]
+    #[case(3)]
+    fn proof_with_incomplete_transcript_fails(#[case] batch_size: usize) {
+        let language_public_parameters = language_public_parameters();
+
+        test_helpers::proof_with_incomplete_transcript_fails::<SOUND_PROOFS_REPETITIONS, Lang>(
+            &language_public_parameters,
+            batch_size,
+            &mut OsRng,
+        )
+    }
 }
 
 #[cfg(feature = "benchmarking")]
