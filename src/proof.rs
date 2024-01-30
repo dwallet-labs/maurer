@@ -394,17 +394,16 @@ pub(crate) mod tests {
 
     use rand_core::OsRng;
 
-    use crate::Language;
     use crate::language::tests::{generate_witness, generate_witnesses};
 
     use super::*;
 
-    pub(crate) fn generate_valid_proof<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
-        language_public_parameters: &Lang::PublicParameters,
-        witnesses: Vec<Lang::WitnessSpaceGroupElement>,
+    pub(crate) fn generate_valid_proof<const REPETITIONS: usize, Language: language::Language<REPETITIONS>>(
+        language_public_parameters: &Language::PublicParameters,
+        witnesses: Vec<Language::WitnessSpaceGroupElement>,
     ) -> (
-        Proof<REPETITIONS, Lang, PhantomData<()>>,
-        Vec<Lang::StatementSpaceGroupElement>,
+        Proof<REPETITIONS, Language, PhantomData<()>>,
+        Vec<Language::StatementSpaceGroupElement>,
     ) {
         Proof::prove(
             &PhantomData,
@@ -416,14 +415,14 @@ pub(crate) mod tests {
     }
 
     #[allow(dead_code)]
-    pub(crate) fn valid_proof_verifies<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
-        language_public_parameters: Lang::PublicParameters,
+    pub(crate) fn valid_proof_verifies<const REPETITIONS: usize, Language: language::Language<REPETITIONS>>(
+        language_public_parameters: Language::PublicParameters,
         batch_size: usize,
     ) {
         let witnesses =
-            generate_witnesses::<REPETITIONS, Lang>(&language_public_parameters, batch_size);
+            generate_witnesses::<REPETITIONS, Language>(&language_public_parameters, batch_size);
 
-        valid_proof_verifies_internal::<REPETITIONS, Lang>(
+        valid_proof_verifies_internal::<REPETITIONS, Language>(
             language_public_parameters,
             witnesses,
         )
@@ -432,12 +431,12 @@ pub(crate) mod tests {
     #[allow(dead_code)]
     pub(crate) fn valid_proof_verifies_internal<
         const REPETITIONS: usize,
-        Lang: Language<REPETITIONS>,
+        Language: language::Language<REPETITIONS>,
     >(
-        language_public_parameters: Lang::PublicParameters,
-        witnesses: Vec<Lang::WitnessSpaceGroupElement>,
+        language_public_parameters: Language::PublicParameters,
+        witnesses: Vec<Language::WitnessSpaceGroupElement>,
     ) {
-        let (proof, statements) = generate_valid_proof::<REPETITIONS, Lang>(
+        let (proof, statements) = generate_valid_proof::<REPETITIONS, Language>(
             &language_public_parameters,
             witnesses.clone(),
         );
@@ -453,26 +452,26 @@ pub(crate) mod tests {
     #[allow(dead_code)]
     pub(crate) fn invalid_proof_fails_verification<
         const REPETITIONS: usize,
-        Lang: Language<REPETITIONS>,
+        Language: language::Language<REPETITIONS>,
     >(
-        invalid_witness_space_value: Option<WitnessSpaceValue<REPETITIONS, Lang>>,
-        invalid_statement_space_value: Option<StatementSpaceValue<REPETITIONS, Lang>>,
-        language_public_parameters: Lang::PublicParameters,
+        invalid_witness_space_value: Option<WitnessSpaceValue<REPETITIONS, Language>>,
+        invalid_statement_space_value: Option<StatementSpaceValue<REPETITIONS, Language>>,
+        language_public_parameters: Language::PublicParameters,
         batch_size: usize,
     ) {
         let witnesses =
-            generate_witnesses::<REPETITIONS, Lang>(&language_public_parameters, batch_size);
+            generate_witnesses::<REPETITIONS, Language>(&language_public_parameters, batch_size);
 
-        let (valid_proof, statements) = generate_valid_proof::<REPETITIONS, Lang>(
+        let (valid_proof, statements) = generate_valid_proof::<REPETITIONS, Language>(
             &language_public_parameters,
             witnesses.clone(),
         );
 
         let wrong_witness =
-            generate_witness::<REPETITIONS, Lang>(&language_public_parameters);
+            generate_witness::<REPETITIONS, Language>(&language_public_parameters);
 
         let wrong_statement =
-            Lang::homomorphose(&wrong_witness, &language_public_parameters).unwrap();
+            Language::homomorphose(&wrong_witness, &language_public_parameters).unwrap();
 
         assert!(
             matches!(
@@ -588,13 +587,13 @@ pub(crate) mod tests {
     #[allow(dead_code)]
     pub(crate) fn proof_over_invalid_public_parameters_fails_verification<
         const REPETITIONS: usize,
-        Lang: Language<REPETITIONS>,
+        Language: language::Language<REPETITIONS>,
     >(
-        prover_language_public_parameters: Lang::PublicParameters,
-        verifier_language_public_parameters: Lang::PublicParameters,
-        witnesses: Vec<Lang::WitnessSpaceGroupElement>,
+        prover_language_public_parameters: Language::PublicParameters,
+        verifier_language_public_parameters: Language::PublicParameters,
+        witnesses: Vec<Language::WitnessSpaceGroupElement>,
     ) {
-        let (proof, statements) = generate_valid_proof::<REPETITIONS, Lang>(
+        let (proof, statements) = generate_valid_proof::<REPETITIONS, Language>(
             &prover_language_public_parameters,
             witnesses.clone(),
         );
@@ -612,6 +611,162 @@ pub(crate) mod tests {
                 Error::Proof(proof::Error::ProofVerification)
             ),
             "proof over wrong public parameters shouldn't verify"
+        );
+    }
+
+    fn setup_partial_transcript<const REPETITIONS: usize,
+        Language: language::Language<REPETITIONS>, ProtocolContext: Serialize>(
+        language_name: bool,
+        protocol_context: Option<ProtocolContext>,
+        language_public_parameters: Option<Language::PublicParameters>,
+        statements: Option<Vec<group::Value<Language::StatementSpaceGroupElement>>>,
+        statement_masks_values: Option<[group::Value<Language::StatementSpaceGroupElement>; REPETITIONS]>,
+    ) -> Transcript {
+        let mut transcript = if language_name { Transcript::new(Language::NAME.as_bytes()) } else { Transcript::new("".as_bytes()) };
+
+        protocol_context.map(|protocol_context| transcript.serialize_to_transcript_as_json(b"protocol context", &protocol_context).unwrap());
+
+        language_public_parameters.map(|language_public_parameters| {
+            transcript.serialize_to_transcript_as_json(
+                b"language public parameters",
+                &language_public_parameters,
+            ).unwrap();
+
+            transcript.serialize_to_transcript_as_json(
+                b"witness space public parameters",
+                language_public_parameters.witness_space_public_parameters(),
+            ).unwrap();
+
+            transcript.serialize_to_transcript_as_json(
+                b"statement space public parameters",
+                language_public_parameters.statement_space_public_parameters(),
+            )
+        });
+
+        statements.map(|statements|
+
+            statements.iter().for_each(|statement|
+                transcript
+                    .serialize_to_transcript_as_json(b"statement value", &statement)
+                    .unwrap()
+            ));
+
+        statement_masks_values.map(|statement_masks|
+            statement_masks.iter().for_each(|statement_mask| {
+                transcript
+                    .serialize_to_transcript_as_json(b"statement mask value", &statement_mask)
+                    .unwrap()
+            }));
+
+        transcript
+    }
+
+    /// Test weak Fiat-Shamir attacks.
+    #[allow(dead_code)]
+    pub(crate) fn proof_with_incomplete_transcript_fails<
+        const REPETITIONS: usize,
+        Language: language::Language<REPETITIONS>,
+    >(
+        language_public_parameters: Language::PublicParameters,
+        batch_size: usize,
+    ) {
+        let witnesses =
+            generate_witnesses::<REPETITIONS, Language>(&language_public_parameters, batch_size);
+        let protocol_context = "valid protocol context".to_string();
+        let (proof, statements) =
+            Proof::<REPETITIONS, Language, String>::prove(
+                &protocol_context,
+                &language_public_parameters,
+                witnesses,
+                &mut OsRng,
+            )
+                .unwrap();
+
+        let statement_values: Vec<group::Value<Language::StatementSpaceGroupElement>> = statements.iter()
+            .map(|statement| statement.value())
+            .collect();
+
+        assert!(
+            proof
+                .verify_inner(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
+                    true,
+                    Some(protocol_context.clone()),
+                    Some(language_public_parameters.clone()),
+                    Some(statement_values.clone()),
+                    Some(proof.statement_masks.clone()),
+                ), &language_public_parameters, statements.clone())
+                .is_ok(),
+            "proofs with complete transcripts should verify"
+        );
+
+        assert!(matches!(
+            proof
+                .verify_inner(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
+                    false,
+                    Some(protocol_context.clone()),
+                    Some(language_public_parameters.clone()),
+                    Some(statement_values.clone()),
+                    Some(proof.statement_masks.clone()),
+                ), &language_public_parameters, statements.clone()).err()
+                .unwrap(),
+            Error::Proof(proof::Error::ProofVerification),),
+                "proofs with incomplete transcripts (missing language name) should fail"
+        );
+
+        assert!(matches!(
+            proof
+                .verify_inner(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
+                    true,
+                    None,
+                    Some(language_public_parameters.clone()),
+                    Some(statement_values.clone()),
+                    Some(proof.statement_masks.clone()),
+                ), &language_public_parameters, statements.clone()).err()
+                .unwrap(),
+            Error::Proof(proof::Error::ProofVerification),),
+                "proofs with incomplete transcripts (missing protocol context) should fail"
+        );
+
+        assert!(matches!(
+            proof
+                .verify_inner(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
+                    true,
+                    Some(protocol_context.clone()),
+                    None,
+                    Some(statement_values.clone()),
+                    Some(proof.statement_masks.clone()),
+                ), &language_public_parameters, statements.clone()).err()
+                .unwrap(),
+            Error::Proof(proof::Error::ProofVerification),),
+                "proofs with incomplete transcripts (missing public parameters) should fail"
+        );
+
+        assert!(matches!(
+            proof
+                .verify_inner(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
+                    true,
+                    Some(protocol_context.clone()),
+                    Some(language_public_parameters.clone()),
+                    None,
+                    Some(proof.statement_masks.clone()),
+                ), &language_public_parameters, statements.clone()).err()
+                .unwrap(),
+            Error::Proof(proof::Error::ProofVerification),),
+                "proofs with incomplete transcripts (missing statements) should fail"
+        );
+
+        assert!(matches!(
+            proof
+                .verify_inner(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
+                    true,
+                    Some(protocol_context.clone()),
+                    Some(language_public_parameters.clone()),
+                    Some(statement_values.clone()),
+                    None,
+                ), &language_public_parameters, statements.clone()).err()
+                .unwrap(),
+            Error::Proof(proof::Error::ProofVerification),),
+                "proofs with incomplete transcripts (missing statement masks) should fail"
         );
     }
 }
