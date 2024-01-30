@@ -7,6 +7,7 @@ pub use proof::{BIT_SOUNDNESS_PROOFS_REPETITIONS, Proof, SOUND_PROOFS_REPETITION
 pub mod language;
 mod proof;
 pub mod knowledge_of_discrete_log;
+pub mod knowledge_of_decommitment;
 
 pub mod test_helpers {
     pub use crate::language::test_helpers::*;
@@ -20,6 +21,8 @@ pub enum Error {
     GroupInstantiation(#[from] group::Error),
     #[error("proof error")]
     Proof(#[from] ::proof::Error),
+    #[error("commitment error")]
+    Commitment(#[from] commitment::Error),
     #[error("unsupported repetitions: must be either 1 or 128")]
     UnsupportedRepetitions,
     #[error("invalid parameters")]
@@ -38,4 +41,5 @@ pub type Result<T> = std::result::Result<T, Error>;
 criterion::criterion_group!(
     benches,
     knowledge_of_discrete_log::benches::benchmark,
+    knowledge_of_decommitment::benches::benchmark,
 );
