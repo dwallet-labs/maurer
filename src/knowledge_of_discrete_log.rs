@@ -5,9 +5,6 @@ use std::{marker::PhantomData, ops::Mul};
 use group::{CyclicGroupElement, Samplable};
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "benchmarking")]
-pub(crate) use benches::benchmark;
-
 use crate::language::GroupsPublicParameters;
 use crate::Result;
 use crate::SOUND_PROOFS_REPETITIONS;
@@ -118,11 +115,13 @@ crate::Proof<SOUND_PROOFS_REPETITIONS, Language<Scalar, GroupElement>, ProtocolC
 
 #[cfg(any(test, feature = "benchmarking"))]
 mod tests {
+    use crypto_bigint::U256;
     use group::{GroupElement, secp256k1};
     use rand_core::OsRng;
     use rstest::rstest;
 
-    use crate::{language, test_helpers};
+    use crate::language;
+    use crate::test_helpers;
 
     use super::*;
 
@@ -148,7 +147,7 @@ mod tests {
         let language_public_parameters = language_public_parameters();
 
         test_helpers::valid_proof_verifies::<SOUND_PROOFS_REPETITIONS, Lang>(
-            language_public_parameters,
+            &language_public_parameters,
             batch_size,
             &mut OsRng,
         )
@@ -167,7 +166,7 @@ mod tests {
         test_helpers::invalid_proof_fails_verification::<SOUND_PROOFS_REPETITIONS, Lang>(
             None,
             None,
-            language_public_parameters,
+            &language_public_parameters,
             batch_size,
             &mut OsRng,
         )
@@ -186,8 +185,18 @@ mod tests {
         prover_public_parameters.generator = secp256k1::GroupElement::new(prover_public_parameters.generator, &secp256k1_group_public_parameters).unwrap().neutral().value();
 
         test_helpers::proof_over_invalid_public_parameters_fails_verification::<SOUND_PROOFS_REPETITIONS, Lang>(
-            prover_public_parameters,
-            verifier_public_parameters,
+            &prover_public_parameters,
+            &verifier_public_parameters,
+            batch_size,
+            &mut OsRng,
+        );
+
+        let mut prover_public_parameters = verifier_public_parameters.clone();
+        prover_public_parameters.groups_public_parameters.statement_space_public_parameters.curve_equation_a = U256::from(42u8);
+
+        test_helpers::proof_over_invalid_public_parameters_fails_verification::<SOUND_PROOFS_REPETITIONS, Lang>(
+            &prover_public_parameters,
+            &verifier_public_parameters,
             batch_size,
             &mut OsRng,
         );
