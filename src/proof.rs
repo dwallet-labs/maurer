@@ -772,7 +772,7 @@ pub(crate) mod tests {
 }
 
 #[cfg(feature = "benchmarking")]
-mod benches {
+pub(crate) mod benches {
     use std::marker::PhantomData;
 
     use criterion::Criterion;
