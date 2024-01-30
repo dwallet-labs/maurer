@@ -585,18 +585,22 @@ pub(super) mod test_helpers {
         }
     }
 
+    /// Simulates a malicious prover that tries to trick an honest verifier by proving a statement over wrong public parameters.
     pub fn proof_over_invalid_public_parameters_fails_verification<
         const REPETITIONS: usize,
         Language: language::Language<REPETITIONS>,
     >(
         prover_language_public_parameters: Language::PublicParameters,
         verifier_language_public_parameters: Language::PublicParameters,
-        witnesses: Vec<Language::WitnessSpaceGroupElement>,
+        batch_size: usize,
         rng: &mut impl CryptoRngCore,
     ) {
+        let witnesses =
+            generate_witnesses::<REPETITIONS, Language>(&verifier_language_public_parameters, batch_size, rng);
+
         let (proof, statements) = generate_valid_proof::<REPETITIONS, Language>(
             &prover_language_public_parameters,
-            witnesses.clone(),
+            witnesses,
             rng,
         );
 
