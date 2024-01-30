@@ -26,3 +26,13 @@ pub enum Error {
 
 /// Maurer result.
 pub type Result<T> = std::result::Result<T, Error>;
+
+
+#[cfg(feature = "benchmarking")]
+criterion::criterion_group!(
+    benches,
+    empty_benchmark
+);
+
+#[cfg(feature = "benchmarking")]
+pub fn empty_benchmark(_c: &mut criterion::Criterion) {}

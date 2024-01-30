@@ -770,3 +770,121 @@ pub(crate) mod tests {
         );
     }
 }
+
+#[cfg(feature = "benchmarking")]
+mod benches {
+    use std::marker::PhantomData;
+
+    use criterion::Criterion;
+    use rand_core::OsRng;
+
+    use crate::{language::tests::generate_witnesses, Proof, Result};
+
+    use super::*;
+
+    #[allow(dead_code)]
+    pub(crate) fn benchmark<const REPETITIONS: usize, Language: language::Language<REPETITIONS>>(
+        language_public_parameters: Language::PublicParameters,
+        extra_description: Option<String>,
+        c: &mut Criterion,
+    ) {
+        let mut g = c.benchmark_group(format!(
+            "{:?}x{:?}-{:?}",
+            Language::NAME,
+            REPETITIONS,
+            extra_description.unwrap_or("".to_string()),
+        ));
+
+        g.sample_size(10);
+
+        for batch_size in [1, 10, 100, 1000] {
+            let witnesses =
+                generate_witnesses::<REPETITIONS, Language>(&language_public_parameters, batch_size);
+
+            let statements: Result<Vec<_>> = witnesses
+                .iter()
+                .map(|witness| Language::homomorphose(witness, &language_public_parameters))
+                .collect();
+
+            let statements = statements.unwrap();
+
+            g.bench_function(format!(".value() over {batch_size} statements"), |bench| {
+                bench.iter(|| statements.iter().map(|x| x.value()).collect::<Vec<_>>())
+            });
+
+            let statements_values: Vec<_> = statements.iter().map(|x| x.value()).collect();
+
+            g.bench_function(
+                format!("maurer::Proof::setup_transcript() over {batch_size} statements"),
+                |bench| {
+                    bench.iter(|| {
+                        Proof::<REPETITIONS, Language, PhantomData<()>>::setup_transcript(
+                            &PhantomData,
+                            &language_public_parameters,
+                            statements_values.clone(),
+                            // just a stub value as the value doesn't affect the benchmarking of
+                            // this function
+                            &[*statements_values.first().unwrap(); REPETITIONS],
+                        )
+                    })
+                },
+            );
+
+            g.bench_function(
+                format!("maurer::Proof::prove_inner() over {batch_size} statements"),
+                |bench| {
+                    bench.iter(|| {
+                        Proof::<REPETITIONS, Language, PhantomData<()>>::prove_with_statements(
+                            &PhantomData,
+                            &language_public_parameters,
+                            witnesses.clone(),
+                            statements.clone(),
+                            &mut OsRng,
+                        )
+                            .unwrap()
+                    });
+                },
+            );
+
+            g.bench_function(
+                format!("maurer::Proof::prove() over {batch_size} statements"),
+                |bench| {
+                    bench.iter(|| {
+                        Proof::<REPETITIONS, Language, PhantomData<()>>::prove_with_statements(
+                            &PhantomData,
+                            &language_public_parameters,
+                            witnesses.clone(),
+                            statements.clone(),
+                            &mut OsRng,
+                        )
+                            .unwrap()
+                    });
+                },
+            );
+
+            let proof = Proof::<REPETITIONS, Language, PhantomData<()>>::prove_with_statements(
+                &PhantomData,
+                &language_public_parameters,
+                witnesses.clone(),
+                statements.clone(),
+                &mut OsRng,
+            )
+                .unwrap();
+
+            g.bench_function(
+                format!("maurer::Proof::verify() over {batch_size} statements"),
+                |bench| {
+                    bench.iter(|| {
+                        proof.verify(
+                            &PhantomData,
+                            &language_public_parameters,
+                            statements.clone(),
+                        )
+                    });
+                },
+            );
+        }
+
+        g.finish();
+    }
+}
