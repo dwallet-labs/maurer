@@ -388,19 +388,17 @@ impl<
     }
 }
 
-#[cfg(any(test, feature = "benchmarking"))]
-pub(crate) mod tests {
+pub(super) mod test_helpers {
     use std::marker::PhantomData;
 
-    use rand_core::OsRng;
-
-    use crate::language::tests::{generate_witness, generate_witnesses};
+    use crate::test_helpers::{generate_witness, generate_witnesses};
 
     use super::*;
 
-    pub(crate) fn generate_valid_proof<const REPETITIONS: usize, Language: language::Language<REPETITIONS>>(
+    pub fn generate_valid_proof<const REPETITIONS: usize, Language: language::Language<REPETITIONS>>(
         language_public_parameters: &Language::PublicParameters,
         witnesses: Vec<Language::WitnessSpaceGroupElement>,
+        rng: &mut impl CryptoRngCore,
     ) -> (
         Proof<REPETITIONS, Language, PhantomData<()>>,
         Vec<Language::StatementSpaceGroupElement>,
@@ -409,36 +407,38 @@ pub(crate) mod tests {
             &PhantomData,
             language_public_parameters,
             witnesses,
-            &mut OsRng,
+            rng,
         )
             .unwrap()
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn valid_proof_verifies<const REPETITIONS: usize, Language: language::Language<REPETITIONS>>(
+    pub fn valid_proof_verifies<const REPETITIONS: usize, Language: language::Language<REPETITIONS>>(
         language_public_parameters: Language::PublicParameters,
         batch_size: usize,
+        rng: &mut impl CryptoRngCore,
     ) {
         let witnesses =
-            generate_witnesses::<REPETITIONS, Language>(&language_public_parameters, batch_size);
+            generate_witnesses::<REPETITIONS, Language>(&language_public_parameters, batch_size, rng);
 
         valid_proof_verifies_internal::<REPETITIONS, Language>(
             language_public_parameters,
             witnesses,
+            rng,
         )
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn valid_proof_verifies_internal<
+    pub fn valid_proof_verifies_internal<
         const REPETITIONS: usize,
         Language: language::Language<REPETITIONS>,
     >(
         language_public_parameters: Language::PublicParameters,
         witnesses: Vec<Language::WitnessSpaceGroupElement>,
+        rng: &mut impl CryptoRngCore,
     ) {
         let (proof, statements) = generate_valid_proof::<REPETITIONS, Language>(
             &language_public_parameters,
             witnesses.clone(),
+            rng,
         );
 
         assert!(
@@ -449,8 +449,7 @@ pub(crate) mod tests {
         );
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn invalid_proof_fails_verification<
+    pub fn invalid_proof_fails_verification<
         const REPETITIONS: usize,
         Language: language::Language<REPETITIONS>,
     >(
@@ -458,17 +457,19 @@ pub(crate) mod tests {
         invalid_statement_space_value: Option<StatementSpaceValue<REPETITIONS, Language>>,
         language_public_parameters: Language::PublicParameters,
         batch_size: usize,
+        rng: &mut impl CryptoRngCore,
     ) {
         let witnesses =
-            generate_witnesses::<REPETITIONS, Language>(&language_public_parameters, batch_size);
+            generate_witnesses::<REPETITIONS, Language>(&language_public_parameters, batch_size, rng);
 
         let (valid_proof, statements) = generate_valid_proof::<REPETITIONS, Language>(
             &language_public_parameters,
             witnesses.clone(),
+            rng,
         );
 
         let wrong_witness =
-            generate_witness::<REPETITIONS, Language>(&language_public_parameters);
+            generate_witness::<REPETITIONS, Language>(&language_public_parameters, rng);
 
         let wrong_statement =
             Language::homomorphose(&wrong_witness, &language_public_parameters).unwrap();
@@ -584,18 +585,19 @@ pub(crate) mod tests {
         }
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn proof_over_invalid_public_parameters_fails_verification<
+    pub fn proof_over_invalid_public_parameters_fails_verification<
         const REPETITIONS: usize,
         Language: language::Language<REPETITIONS>,
     >(
         prover_language_public_parameters: Language::PublicParameters,
         verifier_language_public_parameters: Language::PublicParameters,
         witnesses: Vec<Language::WitnessSpaceGroupElement>,
+        rng: &mut impl CryptoRngCore,
     ) {
         let (proof, statements) = generate_valid_proof::<REPETITIONS, Language>(
             &prover_language_public_parameters,
             witnesses.clone(),
+            rng,
         );
 
         assert!(
@@ -662,23 +664,23 @@ pub(crate) mod tests {
     }
 
     /// Test weak Fiat-Shamir attacks.
-    #[allow(dead_code)]
-    pub(crate) fn proof_with_incomplete_transcript_fails<
+    pub fn proof_with_incomplete_transcript_fails<
         const REPETITIONS: usize,
         Language: language::Language<REPETITIONS>,
     >(
         language_public_parameters: Language::PublicParameters,
         batch_size: usize,
+        rng: &mut impl CryptoRngCore,
     ) {
         let witnesses =
-            generate_witnesses::<REPETITIONS, Language>(&language_public_parameters, batch_size);
+            generate_witnesses::<REPETITIONS, Language>(&language_public_parameters, batch_size, rng);
         let protocol_context = "valid protocol context".to_string();
         let (proof, statements) =
             Proof::<REPETITIONS, Language, String>::prove(
                 &protocol_context,
                 &language_public_parameters,
                 witnesses,
-                &mut OsRng,
+                rng,
             )
                 .unwrap();
 

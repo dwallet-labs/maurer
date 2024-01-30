@@ -8,6 +8,11 @@ pub mod language;
 mod proof;
 pub mod knowledge_of_discrete_log;
 
+pub mod test_helpers {
+    pub use crate::language::test_helpers::*;
+    pub use crate::proof::test_helpers::*;
+}
+
 /// Maurer error.
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
