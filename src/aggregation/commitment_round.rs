@@ -9,8 +9,8 @@ use proof::aggregation::CommitmentRoundParty;
 use serde::Serialize;
 
 use crate::{language, Proof};
+use crate::{Error, Result};
 use crate::aggregation::decommitment_round;
-use crate::Result;
 
 #[cfg_attr(feature = "benchmarking", derive(Clone))]
 pub struct Party<
@@ -40,6 +40,7 @@ impl<
 > CommitmentRoundParty<super::Output<REPETITIONS, Language, ProtocolContext>>
 for Party<REPETITIONS, Language, ProtocolContext>
 {
+    type Error = Error;
     type Commitment = Commitment;
 
     type DecommitmentRoundParty = decommitment_round::Party<REPETITIONS, Language, ProtocolContext>;

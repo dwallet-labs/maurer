@@ -1,9 +1,15 @@
 // Author: dWallet Labs, Ltd.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
-use group::{ComputationalSecuritySizedNumber, PartyID};
+use std::collections::HashMap;
+
+use commitment::Commitment;
+use crypto_bigint::rand_core::CryptoRngCore;
+use group::{ComputationalSecuritySizedNumber, GroupElement, PartyID};
+use proof::aggregation::DecommitmentRoundParty;
 use serde::{Deserialize, Serialize};
 
+use crate::{Error, Result};
 use crate::language;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -35,4 +41,65 @@ pub struct Party<
     pub(super) randomizers: [Language::WitnessSpaceGroupElement; REPETITIONS],
     pub(super) statement_masks: [Language::StatementSpaceGroupElement; REPETITIONS],
     pub(super) commitment_randomness: ComputationalSecuritySizedNumber,
+}
+
+
+impl<
+    const REPETITIONS: usize,
+    Language: language::Language<REPETITIONS>,
+    ProtocolContext: Clone + Serialize,
+> DecommitmentRoundParty<super::Output<REPETITIONS, Language, ProtocolContext>>
+for Party<REPETITIONS, Language, ProtocolContext>
+{
+    type Error = Error;
+    type Commitment = Commitment;
+    type Decommitment = Decommitment<REPETITIONS, Language>;
+    type ProofShareRoundParty = proof_share_round::Party<REPETITIONS, Language, ProtocolContext>;
+
+    fn decommit_statements_and_statement_mask(
+        self,
+        commitments: HashMap<PartyID, Self::Commitment>,
+        rng: &mut impl CryptoRngCore,
+    ) -> Result<(Self::Decommitment, Self::ProofShareRoundParty)> {
+        let commitments: HashMap<_, _> = commitments
+            .into_iter()
+            .filter(|(party_id, _)| *party_id != self.party_id)
+            .collect();
+
+        // TODO: is this sufficient? later rounds check against the same party set so this should
+        // cover that. TODO: test this
+        // if commitments.len() + 1 < self.threshold.into() {
+        //     return Err(Error::ThresholdNotReached)?;
+        // }
+
+        let decommitment = Decommitment::<REPETITIONS, Language> {
+            statements: self
+                .statements
+                .iter()
+                .map(|statement| statement.value())
+                .collect(),
+            // TODO: take this from previous round instead of computing values again here.
+            statement_masks: self
+                .statement_masks
+                .clone()
+                .map(|statement_mask| statement_mask.value()),
+            commitment_randomness: self.commitment_randomness,
+        };
+
+        let proof_share_round_party =
+            proof_share_round::Party::<REPETITIONS, Language, ProtocolContext> {
+                party_id: self.party_id,
+                threshold: self.threshold,
+                number_of_parties: self.number_of_parties,
+                language_public_parameters: self.language_public_parameters,
+                protocol_context: self.protocol_context,
+                witnesses: self.witnesses,
+                statements: self.statements,
+                randomizers: self.randomizers,
+                statement_masks: self.statement_masks,
+                commitments,
+            };
+
+        Ok((decommitment, proof_share_round_party))
+    }
 }

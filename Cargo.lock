@@ -359,7 +359,7 @@ dependencies = [
 [[package]]
 name = "proof"
 version = "0.1.0"
-source = "git+https://github.com/dwallet-labs/proof.git?branch=aggregation#b82b7534e747d815f6a3938f64333c8fa60b5a12"
+source = "git+https://github.com/dwallet-labs/proof.git?branch=aggregation#6df17beb2be64dd73663bd3a2c13fa7b97de8e34"
 dependencies = [
  "crypto-bigint",
  "group 0.1.0",
