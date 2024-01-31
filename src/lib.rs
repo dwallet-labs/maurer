@@ -6,6 +6,7 @@ pub use proof::Proof;
 
 pub mod language;
 mod proof;
+pub mod aggregation;
 
 /// Maurer error.
 #[derive(thiserror::Error, Debug)]
