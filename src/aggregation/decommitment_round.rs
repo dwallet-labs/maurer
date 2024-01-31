@@ -10,6 +10,7 @@ use proof::aggregation::DecommitmentRoundParty;
 use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result};
+use crate::aggregation::proof_share_round;
 use crate::language;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
