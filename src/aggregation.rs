@@ -6,6 +6,7 @@ use crate::{language, Proof};
 pub mod commitment_round;
 pub mod decommitment_round;
 pub mod proof_share_round;
+pub mod proof_aggregation_round;
 
 pub type Output<const REPETITIONS: usize, Language, ProtocolContext> = (
     Proof<REPETITIONS, Language, ProtocolContext>,

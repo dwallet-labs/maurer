@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result};
 use crate::aggregation::decommitment_round::Decommitment;
+use crate::aggregation::proof_aggregation_round;
 use crate::language::GroupsPublicParametersAccessors;
 use crate::language::WitnessSpaceValue;
 use crate::Proof;
