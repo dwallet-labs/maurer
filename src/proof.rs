@@ -29,7 +29,7 @@ pub(super) type ChallengeSizedNumber =
 /// Implements Appendix B. Maurer Protocols in the paper.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Proof<
-    // Number of times this proof should be repeated to achieve sufficient security
+    // Number of parallel repetitions required to get a negligible soundness error.
     const REPETITIONS: usize,
     // The language we are proving
     Language: language::Language<REPETITIONS>,
