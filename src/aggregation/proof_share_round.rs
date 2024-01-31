@@ -62,7 +62,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
     fn generate_proof_share(
         self,
         decommitments: HashMap<PartyID, Self::Decommitment>,
-        rng: &mut impl CryptoRngCore,
+        _rng: &mut impl CryptoRngCore,
     ) -> Result<(Self::ProofShare, Self::ProofAggregationRoundParty)> {
         let previous_round_party_ids: HashSet<PartyID> =
             self.commitments.keys().map(|k| *k).collect();
@@ -75,8 +75,6 @@ for Party<REPETITIONS, Language, ProtocolContext>
             .filter(|(party_id, _)| previous_round_party_ids.contains(party_id))
             .collect();
         let current_round_party_ids: HashSet<PartyID> = decommitments.keys().map(|k| *k).collect();
-
-        let number_of_parties = decommitments.len() + 1;
 
         let unresponsive_parties: Vec<PartyID> = current_round_party_ids
             .symmetric_difference(&previous_round_party_ids)
@@ -231,8 +229,6 @@ for Party<REPETITIONS, Language, ProtocolContext>
         let proof_aggregation_round_party =
             proof_aggregation_round::Party::<REPETITIONS, Language, ProtocolContext> {
                 party_id: self.party_id,
-                threshold: self.threshold,
-                number_of_parties: self.number_of_parties,
                 language_public_parameters: self.language_public_parameters,
                 protocol_context: self.protocol_context,
                 previous_round_party_ids,

@@ -60,7 +60,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
     fn decommit_statements_and_statement_mask(
         self,
         commitments: HashMap<PartyID, Self::Commitment>,
-        rng: &mut impl CryptoRngCore,
+        _rng: &mut impl CryptoRngCore,
     ) -> Result<(Self::Decommitment, Self::ProofShareRoundParty)> {
         let commitments: HashMap<_, _> = commitments
             .into_iter()

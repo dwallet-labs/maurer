@@ -4,6 +4,8 @@
 use std::collections::{HashMap, HashSet};
 
 use crypto_bigint::rand_core::CryptoRngCore;
+use group::GroupElement;
+use group::helpers::FlatMapResults;
 use group::PartyID;
 use proof::aggregation::ProofAggregationRoundParty;
 use serde::Serialize;
@@ -11,6 +13,7 @@ use serde::Serialize;
 use crate::{Error, Proof, Result};
 use crate::aggregation::Output;
 use crate::aggregation::proof_share_round::ProofShare;
+use crate::language::GroupsPublicParametersAccessors;
 
 #[cfg_attr(feature = "benchmarking", derive(Clone))]
 pub struct Party<
@@ -24,8 +27,6 @@ pub struct Party<
     ProtocolContext: Clone,
 > {
     pub(super) party_id: PartyID,
-    pub(super) threshold: PartyID,
-    pub(crate) number_of_parties: PartyID,
     pub(super) language_public_parameters: Language::PublicParameters,
     pub(super) protocol_context: ProtocolContext,
     pub(super) previous_round_party_ids: HashSet<PartyID>,
@@ -47,7 +48,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
     fn aggregate_proof_shares(
         self,
         proof_shares: HashMap<PartyID, Self::ProofShare>,
-        rng: &mut impl CryptoRngCore,
+        _rng: &mut impl CryptoRngCore,
     ) -> Result<Output<REPETITIONS, Language, ProtocolContext>> {
         // TODO: DRY-out!
         // First remove parties that didn't participate in the previous round, as they shouldn't be
@@ -58,8 +59,6 @@ for Party<REPETITIONS, Language, ProtocolContext>
             .filter(|(party_id, _)| *party_id != self.party_id)
             .filter(|(party_id, _)| self.previous_round_party_ids.contains(party_id))
             .collect();
-
-        let number_of_parties = proof_shares.len() + 1;
 
         let current_round_party_ids: HashSet<PartyID> = proof_shares.keys().copied().collect();
 
@@ -114,24 +113,23 @@ for Party<REPETITIONS, Language, ProtocolContext>
                 .collect();
 
         // TODO: helper function
-        let response =
+        let responses =
             proof_shares
                 .values()
-                .fold(Ok(self.responses), |aggregated_reponses, proof_share| {
-                    aggregated_reponses.and_then(|aggregated_reponses| {
-                        aggregated_reponses
+                .fold(Ok(self.responses), |aggregated_responses, proof_share| {
+                    aggregated_responses.and_then(|aggregated_responses| {
+                        aggregated_responses
                             .into_iter()
                             .zip(proof_share)
-                            .map(|(aggregated_reponse, response)| aggregated_reponse + response)
+                            .map(|(aggregated_response, response)| aggregated_response + response)
                             .collect::<Vec<_>>()
                             .try_into()
                             .map_err(|_| Error::InternalError)
                     })
-                });
+                })?.map(|response| response.value());
 
-        // TODO: this stage should be done seperately for enhanced proofs and the responses need to
-        // be range-checked.
-        let aggregated_proof = Proof::new(&self.aggregated_statement_masks, &response?);
+        let aggregated_statement_masks = self.aggregated_statement_masks.map(|statement_mask| statement_mask.value());
+        let aggregated_proof = Proof::new(aggregated_statement_masks, responses);
         if aggregated_proof
             .verify(
                 &self.protocol_context,
@@ -149,8 +147,8 @@ for Party<REPETITIONS, Language, ProtocolContext>
                     (
                         party_id,
                         Proof::<REPETITIONS, Language, ProtocolContext>::new(
-                            &self.aggregated_statement_masks,
-                            &proof_share,
+                            aggregated_statement_masks,
+                            proof_share.map(|share| share.value()),
                         ),
                     )
                 })
