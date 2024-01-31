@@ -15,6 +15,8 @@ pub enum Error {
     GroupInstantiation(#[from] group::Error),
     #[error("proof error")]
     Proof(#[from] ::proof::Error),
+    #[error("aggregation error")]
+    Aggregation(#[from] ::proof::aggregation::Error),
     #[error("unsupported repetitions: must be either 1 or 128")]
     UnsupportedRepetitions,
     #[error("invalid parameters")]
