@@ -17,7 +17,7 @@ pub type Output<const REPETITIONS: usize, Language, ProtocolContext> = (
     Vec<language::StatementSpaceGroupElement<REPETITIONS, Language>>,
 );
 
-fn process_incoming_messages<T>(party_id: PartyID, provers: &HashSet<PartyID>, messages: HashMap<PartyID, T>) -> Result<HashMap<PartyID, T>> {
+fn process_incoming_messages<T>(party_id: PartyID, provers: HashSet<PartyID>, messages: HashMap<PartyID, T>) -> Result<HashMap<PartyID, T>> {
     // First remove parties that didn't participate in the previous round, as they shouldn't be
     // allowed to join the session half-way, and we can self-heal this malicious behaviour
     // without needing to stop the session and report.
@@ -27,10 +27,12 @@ fn process_incoming_messages<T>(party_id: PartyID, provers: &HashSet<PartyID>, m
         .filter(|(pid, _)| provers.contains(pid))
         .collect();
 
-    let current_round_party_ids: HashSet<PartyID> = messages.keys().copied().collect();
+    let current_round_party_ids: HashSet<PartyID> = messages.keys().filter(|&pid| *pid != party_id).copied().collect();
+
+    let other_provers = provers.into_iter().filter(|pid| *pid != party_id).collect();
 
     let unresponsive_parties: Vec<PartyID> = current_round_party_ids
-        .symmetric_difference(provers)
+        .symmetric_difference(&other_provers)
         .cloned()
         .collect();
 
@@ -41,21 +43,21 @@ fn process_incoming_messages<T>(party_id: PartyID, provers: &HashSet<PartyID>, m
     Ok(messages)
 }
 
-pub(crate) mod tests {
+pub(super) mod test_helpers {
     use std::collections::HashMap;
     use std::marker::PhantomData;
 
+    use crypto_bigint::rand_core::CryptoRngCore;
     use proof::aggregation::test_helpers::aggregates_internal;
-    use rand_core::OsRng;
 
     use crate::Language;
 
     use super::*;
 
-    #[allow(dead_code)]
-    pub(crate) fn aggregates<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
+    pub fn aggregates<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
         language_public_parameters: &Lang::PublicParameters,
         witnesses: Vec<Vec<Lang::WitnessSpaceGroupElement>>,
+        rng: &mut impl CryptoRngCore,
     ) {
         let number_of_parties = witnesses.len().try_into().unwrap();
         let provers = HashSet::from_iter(1..=number_of_parties);
@@ -76,14 +78,14 @@ pub(crate) mod tests {
                         language_public_parameters.clone(),
                         PhantomData,
                         witnesses,
-                        &mut OsRng,
+                        rng,
                     )
                         .unwrap(),
                 )
             })
             .collect();
 
-        let (proof, statements) = aggregates_internal(commitment_round_parties, &mut OsRng);
+        let (proof, statements) = aggregates_internal(commitment_round_parties, rng);
 
         assert!(
             proof

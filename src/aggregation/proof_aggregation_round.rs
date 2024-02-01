@@ -52,7 +52,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
         proof_shares: HashMap<PartyID, Self::ProofShare>,
         _rng: &mut impl CryptoRngCore,
     ) -> Result<Output<REPETITIONS, Language, ProtocolContext>> {
-        let proof_shares = process_incoming_messages(self.party_id, &self.provers, proof_shares)?;
+        let proof_shares = process_incoming_messages(self.party_id, self.provers, proof_shares)?;
 
         let proof_shares: HashMap<
             PartyID,

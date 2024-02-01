@@ -2,11 +2,17 @@
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 pub use language::Language;
-pub use proof::Proof;
+pub use proof::{BIT_SOUNDNESS_PROOFS_REPETITIONS, Proof, SOUND_PROOFS_REPETITIONS};
 
 pub mod language;
 mod proof;
 pub mod aggregation;
+
+pub mod test_helpers {
+    pub use crate::aggregation::test_helpers::*;
+    pub use crate::language::test_helpers::*;
+    pub use crate::proof::test_helpers::*;
+}
 
 /// Maurer error.
 #[derive(thiserror::Error, Debug)]
