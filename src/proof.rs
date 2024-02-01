@@ -223,19 +223,31 @@ impl<
             &self.statement_masks,
         )?;
 
-        self.verify_inner(&mut transcript, language_public_parameters, statements)
+        let challenges: [Vec<ChallengeSizedNumber>; REPETITIONS] =
+            Self::compute_challenges(statements.len(), &mut transcript);
+
+        self.verify_inner(challenges, language_public_parameters, statements)
     }
 
-    pub(crate) fn verify_inner(
+    fn verify_with_transcript(
         &self,
         transcript: &mut Transcript,
         language_public_parameters: &Language::PublicParameters,
         statements: Vec<Language::StatementSpaceGroupElement>,
     ) -> Result<()> {
-        let batch_size = statements.len();
-
         let challenges: [Vec<ChallengeSizedNumber>; REPETITIONS] =
-            Self::compute_challenges(batch_size, transcript);
+            Self::compute_challenges(statements.len(), transcript);
+
+        self.verify_inner(challenges, language_public_parameters, statements)
+    }
+
+    pub(crate) fn verify_inner(
+        &self,
+        challenges: [Vec<ChallengeSizedNumber>; REPETITIONS],
+        language_public_parameters: &Language::PublicParameters,
+        statements: Vec<Language::StatementSpaceGroupElement>,
+    ) -> Result<()> {
+        let batch_size = statements.len();
 
         let responses = self
             .responses
@@ -368,7 +380,7 @@ impl<
         Ok(transcript)
     }
 
-    fn compute_challenges(
+    pub(crate) fn compute_challenges(
         batch_size: usize,
         transcript: &mut Transcript,
     ) -> [Vec<ChallengeSizedNumber>; REPETITIONS] {
@@ -694,7 +706,7 @@ pub(super) mod test_helpers {
 
         assert!(
             proof
-                .verify_inner(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
+                .verify_with_transcript(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
                     true,
                     Some(protocol_context.clone()),
                     Some(language_public_parameters.clone()),
@@ -707,7 +719,7 @@ pub(super) mod test_helpers {
 
         assert!(matches!(
             proof
-                .verify_inner(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
+                .verify_with_transcript(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
                     false,
                     Some(protocol_context.clone()),
                     Some(language_public_parameters.clone()),
@@ -721,7 +733,7 @@ pub(super) mod test_helpers {
 
         assert!(matches!(
             proof
-                .verify_inner(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
+                .verify_with_transcript(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
                     true,
                     None,
                     Some(language_public_parameters.clone()),
@@ -735,7 +747,7 @@ pub(super) mod test_helpers {
 
         assert!(matches!(
             proof
-                .verify_inner(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
+                .verify_with_transcript(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
                     true,
                     Some(protocol_context.clone()),
                     None,
@@ -749,7 +761,7 @@ pub(super) mod test_helpers {
 
         assert!(matches!(
             proof
-                .verify_inner(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
+                .verify_with_transcript(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
                     true,
                     Some(protocol_context.clone()),
                     Some(language_public_parameters.clone()),
@@ -763,7 +775,7 @@ pub(super) mod test_helpers {
 
         assert!(matches!(
             proof
-                .verify_inner(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
+                .verify_with_transcript(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
                     true,
                     Some(protocol_context.clone()),
                     Some(language_public_parameters.clone()),
