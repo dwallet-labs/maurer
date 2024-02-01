@@ -223,19 +223,19 @@ impl<
             &self.statement_masks,
         )?;
 
-        self.verify_inner(&mut transcript, language_public_parameters, statements)
+        let challenges: [Vec<ChallengeSizedNumber>; REPETITIONS] =
+            Self::compute_challenges(statements.len(), &mut transcript);
+
+        self.verify_inner(challenges, language_public_parameters, statements)
     }
 
     pub(crate) fn verify_inner(
         &self,
-        transcript: &mut Transcript,
+        challenges: [Vec<ChallengeSizedNumber>; REPETITIONS],
         language_public_parameters: &Language::PublicParameters,
         statements: Vec<Language::StatementSpaceGroupElement>,
     ) -> Result<()> {
         let batch_size = statements.len();
-
-        let challenges: [Vec<ChallengeSizedNumber>; REPETITIONS] =
-            Self::compute_challenges(batch_size, transcript);
 
         let responses = self
             .responses
@@ -368,7 +368,7 @@ impl<
         Ok(transcript)
     }
 
-    fn compute_challenges(
+    pub(crate) fn compute_challenges(
         batch_size: usize,
         transcript: &mut Transcript,
     ) -> [Vec<ChallengeSizedNumber>; REPETITIONS] {

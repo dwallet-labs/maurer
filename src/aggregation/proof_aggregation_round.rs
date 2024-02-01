@@ -14,6 +14,7 @@ use crate::{Error, Proof, Result};
 use crate::aggregation::Output;
 use crate::aggregation::proof_share_round::ProofShare;
 use crate::language::GroupsPublicParametersAccessors;
+use crate::proof::ChallengeSizedNumber;
 
 #[cfg_attr(feature = "benchmarking", derive(Clone))]
 pub struct Party<
@@ -30,6 +31,7 @@ pub struct Party<
     pub(super) language_public_parameters: Language::PublicParameters,
     pub(super) protocol_context: ProtocolContext,
     pub(super) previous_round_party_ids: HashSet<PartyID>,
+    pub(super) statement_masks: HashMap<PartyID, [group::Value<Language::StatementSpaceGroupElement>; REPETITIONS]>,
     pub(super) aggregated_statements: Vec<Language::StatementSpaceGroupElement>,
     pub(super) aggregated_statement_masks: [Language::StatementSpaceGroupElement; REPETITIONS],
     pub(super) responses: [Language::WitnessSpaceGroupElement; REPETITIONS],
@@ -112,7 +114,6 @@ for Party<REPETITIONS, Language, ProtocolContext>
                 .map(|(party_id, proof_share)| (party_id, proof_share.unwrap()))
                 .collect();
 
-        // TODO: helper function
         let responses =
             proof_shares
                 .values()
@@ -138,31 +139,46 @@ for Party<REPETITIONS, Language, ProtocolContext>
             )
             .is_err()
         {
-            // TODO: this should be their own statement mask, not the aggregated one
-            // But the challenges should still remain the same - need to seperate the verify()
-            // function, and take the challenge from the aggregated proof and pass it there
-            let proof_share_cheating_parties: Vec<PartyID> = proof_shares
+            /*
+               Identifiable abort logic: using the challenges of the aggregated proof, validate the individual proofs
+               (i.e. proof share, statement mask produced by every party).
+            */
+            let mut transcript = Proof::<REPETITIONS, Language, ProtocolContext>::setup_transcript(
+                &self.protocol_context,
+                &self.language_public_parameters,
+                self.aggregated_statements.iter()
+                    .map(|statement| statement.value())
+                    .collect(),
+                &aggregated_statement_masks,
+            )?;
+
+            let challenges: [Vec<ChallengeSizedNumber>; REPETITIONS] =
+                Proof::<REPETITIONS, Language, ProtocolContext>::compute_challenges(self.aggregated_statements.len(), &mut transcript);
+
+            let proofs: HashMap<_, _> = proof_shares
                 .into_iter()
                 .map(|(party_id, proof_share)| {
-                    (
+                    self.statement_masks.get(&party_id).map(|&statement_masks| (
                         party_id,
                         Proof::<REPETITIONS, Language, ProtocolContext>::new(
-                            aggregated_statement_masks,
+                            statement_masks,
                             proof_share.map(|share| share.value()),
                         ),
-                    )
-                })
-                .filter(|(_, proof)| {
+                    )).ok_or(Error::InternalError) // Same parties participating in all rounds.
+                }).collect::<Result<_>>()?;
+
+            let proof_share_cheating_parties: Vec<PartyID> =
+                proofs.into_iter().filter(|(_, proof)| {
                     proof
-                        .verify(
-                            &self.protocol_context,
+                        .verify_inner(
+                            challenges.clone(),
                             &self.language_public_parameters,
                             self.aggregated_statements.clone(),
                         )
                         .is_err()
                 })
-                .map(|(party_id, _)| party_id)
-                .collect();
+                    .map(|(party_id, _)| party_id)
+                    .collect();
 
             return Err(proof::aggregation::Error::ProofShareVerification(
                 proof_share_cheating_parties,

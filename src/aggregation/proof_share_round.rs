@@ -66,6 +66,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
     ) -> Result<(Self::ProofShare, Self::ProofAggregationRoundParty)> {
         let previous_round_party_ids: HashSet<PartyID> =
             self.commitments.keys().map(|k| *k).collect();
+
         // First remove parties that didn't participate in the previous round, as they shouldn't be
         // allowed to join the session half-way, and we can self-heal this malicious behaviour
         // without needing to stop the session and report
@@ -171,6 +172,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
 
         let statements_vector: group::Result<Vec<Vec<Language::StatementSpaceGroupElement>>> =
             decommitments
+                .clone()
                 .into_values()
                 .map(|decommitment| {
                     decommitment
@@ -226,12 +228,19 @@ for Party<REPETITIONS, Language, ProtocolContext>
             })
             .flat_map_results()?;
 
+        let statement_masks = decommitments
+            .into_iter()
+            .map(|(party_id, decommitment)|
+                (party_id, decommitment
+                    .statement_masks)).collect();
+
         let proof_aggregation_round_party =
             proof_aggregation_round::Party::<REPETITIONS, Language, ProtocolContext> {
                 party_id: self.party_id,
                 language_public_parameters: self.language_public_parameters,
                 protocol_context: self.protocol_context,
                 previous_round_party_ids,
+                statement_masks,
                 aggregated_statements,
                 aggregated_statement_masks,
                 responses,
