@@ -79,6 +79,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
                             *party_id,
                             Commitment::commit_transcript(
                                 *party_id,
+                                "maurer proof aggregation - commitment round commitment".to_string(),
                                 &mut transcript,
                                 &decommitment.commitment_randomness,
                             ),
