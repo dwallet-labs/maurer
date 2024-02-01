@@ -120,6 +120,7 @@ mod tests {
 
     use crate::language;
     use crate::test_helpers;
+    use crate::test_helpers::generate_witnesses_for_aggregation;
 
     use super::*;
 
@@ -211,6 +212,29 @@ mod tests {
         test_helpers::proof_with_incomplete_transcript_fails::<SOUND_PROOFS_REPETITIONS, Lang>(
             &language_public_parameters,
             batch_size,
+            &mut OsRng,
+        )
+    }
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(1, 2)]
+    #[case(2, 1)]
+    #[case(2, 3)]
+    #[case(5, 2)]
+    fn aggregates(#[case] number_of_parties: usize, #[case] batch_size: usize) {
+        let language_public_parameters = language_public_parameters();
+
+        let witnesses = generate_witnesses_for_aggregation::<SOUND_PROOFS_REPETITIONS, Lang>(
+            &language_public_parameters,
+            number_of_parties,
+            batch_size,
+            &mut OsRng,
+        );
+
+        test_helpers::aggregates::<SOUND_PROOFS_REPETITIONS, Lang>(
+            &language_public_parameters,
+            witnesses,
             &mut OsRng,
         )
     }

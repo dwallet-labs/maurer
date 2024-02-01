@@ -3,12 +3,13 @@
 
 use std::collections::{HashMap, HashSet};
 
-use commitment::Commitment;
 use crypto_bigint::rand_core::CryptoRngCore;
 use group::{GroupElement, PartyID};
 use group::helpers::FlatMapResults;
 use proof::aggregation::ProofShareRoundParty;
 use serde::{Deserialize, Serialize};
+
+use commitment::Commitment;
 
 use crate::{Error, Result};
 use crate::aggregation::{process_incoming_messages, proof_aggregation_round};
@@ -63,7 +64,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
         decommitments: HashMap<PartyID, Self::Decommitment>,
         _rng: &mut impl CryptoRngCore,
     ) -> Result<(Self::ProofShare, Self::ProofAggregationRoundParty)> {
-        let decommitments = process_incoming_messages(self.party_id, &self.provers, decommitments)?;
+        let decommitments = process_incoming_messages(self.party_id, self.provers.clone(), decommitments)?;
 
         let reconstructed_commitments: Result<HashMap<PartyID, Commitment>> = decommitments
             .iter()
@@ -90,9 +91,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
 
         let reconstructed_commitments: HashMap<PartyID, Commitment> = reconstructed_commitments?;
 
-        let miscommitting_parties: Vec<PartyID> = self.provers
-            .clone()
-            .into_iter()
+        let miscommitting_parties: Vec<PartyID> = decommitments.keys().cloned()
             .filter(|party_id| reconstructed_commitments[party_id] != self.commitments[party_id])
             .collect();
 

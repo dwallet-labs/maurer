@@ -3,11 +3,12 @@
 
 use std::collections::{HashMap, HashSet};
 
-use commitment::Commitment;
 use crypto_bigint::rand_core::CryptoRngCore;
 use group::{ComputationalSecuritySizedNumber, GroupElement, PartyID};
 use proof::aggregation::DecommitmentRoundParty;
 use serde::{Deserialize, Serialize};
+
+use commitment::Commitment;
 
 use crate::{Error, Result};
 use crate::aggregation::{process_incoming_messages, proof_share_round};
@@ -62,7 +63,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
         commitments: HashMap<PartyID, Self::Commitment>,
         _rng: &mut impl CryptoRngCore,
     ) -> Result<(Self::Decommitment, Self::ProofShareRoundParty)> {
-        let commitments = process_incoming_messages(self.party_id, &self.provers, commitments)?;
+        let commitments = process_incoming_messages(self.party_id, self.provers.clone(), commitments)?;
 
         let decommitment = Decommitment::<REPETITIONS, Language> {
             statements: self
