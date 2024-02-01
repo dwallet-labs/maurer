@@ -11,7 +11,7 @@ use proof::aggregation::ProofAggregationRoundParty;
 use serde::Serialize;
 
 use crate::{Error, Proof, Result};
-use crate::aggregation::Output;
+use crate::aggregation::{Output, process_incoming_messages};
 use crate::aggregation::proof_share_round::ProofShare;
 use crate::language::GroupsPublicParametersAccessors;
 use crate::proof::ChallengeSizedNumber;
@@ -28,9 +28,9 @@ pub struct Party<
     ProtocolContext: Clone,
 > {
     pub(super) party_id: PartyID,
+    pub(crate) provers: HashSet<PartyID>,
     pub(super) language_public_parameters: Language::PublicParameters,
     pub(super) protocol_context: ProtocolContext,
-    pub(super) previous_round_party_ids: HashSet<PartyID>,
     pub(super) statement_masks: HashMap<PartyID, [group::Value<Language::StatementSpaceGroupElement>; REPETITIONS]>,
     pub(super) aggregated_statements: Vec<Language::StatementSpaceGroupElement>,
     pub(super) aggregated_statement_masks: [Language::StatementSpaceGroupElement; REPETITIONS],
@@ -52,26 +52,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
         proof_shares: HashMap<PartyID, Self::ProofShare>,
         _rng: &mut impl CryptoRngCore,
     ) -> Result<Output<REPETITIONS, Language, ProtocolContext>> {
-        // TODO: DRY-out!
-        // First remove parties that didn't participate in the previous round, as they shouldn't be
-        // allowed to join the session half-way, and we can self-heal this malicious behaviour
-        // without needing to stop the session and report
-        let proof_shares: HashMap<PartyID, ProofShare<REPETITIONS, Language>> = proof_shares
-            .into_iter()
-            .filter(|(party_id, _)| *party_id != self.party_id)
-            .filter(|(party_id, _)| self.previous_round_party_ids.contains(party_id))
-            .collect();
-
-        let current_round_party_ids: HashSet<PartyID> = proof_shares.keys().copied().collect();
-
-        let unresponsive_parties: Vec<PartyID> = current_round_party_ids
-            .symmetric_difference(&self.previous_round_party_ids)
-            .cloned()
-            .collect();
-
-        if !unresponsive_parties.is_empty() {
-            return Err(proof::aggregation::Error::UnresponsiveParties(unresponsive_parties))?;
-        }
+        let proof_shares = process_incoming_messages(self.party_id, &self.provers, proof_shares)?;
 
         let proof_shares: HashMap<
             PartyID,

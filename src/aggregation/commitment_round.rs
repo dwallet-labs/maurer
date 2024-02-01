@@ -1,10 +1,13 @@
 // Author: dWallet Labs, Ltd.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
+use std::collections::HashSet;
+
 use commitment::Commitment;
 use crypto_bigint::rand_core::CryptoRngCore;
 use crypto_bigint::Random;
 use group::{ComputationalSecuritySizedNumber, GroupElement, PartyID};
+use proof::aggregation;
 use proof::aggregation::CommitmentRoundParty;
 use serde::Serialize;
 
@@ -24,8 +27,8 @@ pub struct Party<
     ProtocolContext: Clone,
 > {
     pub(crate) party_id: PartyID,
-    pub(crate) threshold: PartyID,
-    pub(crate) number_of_parties: PartyID,
+    // The set of parties ${P_i}$ participating in the proof aggregation protocol.
+    pub(crate) provers: HashSet<PartyID>,
     pub(crate) language_public_parameters: Language::PublicParameters,
     pub(crate) protocol_context: ProtocolContext,
     pub(crate) witnesses: Vec<Language::WitnessSpaceGroupElement>,
@@ -49,6 +52,10 @@ for Party<REPETITIONS, Language, ProtocolContext>
         self,
         rng: &mut impl CryptoRngCore,
     ) -> Result<(Self::Commitment, Self::DecommitmentRoundParty)> {
+        if !self.provers.contains(&self.party_id) {
+            return Err(Error::Aggregation(aggregation::Error::NonParticipatingParty));
+        }
+
         let statements: Result<Vec<Language::StatementSpaceGroupElement>> = self
             .witnesses
             .iter()
@@ -58,6 +65,11 @@ for Party<REPETITIONS, Language, ProtocolContext>
 
         let commitment_randomness = ComputationalSecuritySizedNumber::random(rng);
 
+        let statement_masks_values = self
+            .statement_masks
+            .clone()
+            .map(|statement_mask| statement_mask.value());
+
         let mut transcript = Proof::<REPETITIONS, Language, ProtocolContext>::setup_transcript(
             &self.protocol_context,
             &self.language_public_parameters,
@@ -65,10 +77,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
                 .iter()
                 .map(|statement| statement.value())
                 .collect(),
-            &self
-                .statement_masks
-                .clone()
-                .map(|statement_mask| statement_mask.value()),
+            &statement_masks_values,
         )?;
 
         let commitment = Commitment::commit_transcript(&mut transcript, &commitment_randomness);
@@ -76,14 +85,14 @@ for Party<REPETITIONS, Language, ProtocolContext>
         let decommitment_round_party =
             decommitment_round::Party::<REPETITIONS, Language, ProtocolContext> {
                 party_id: self.party_id,
-                threshold: self.threshold,
-                number_of_parties: self.number_of_parties,
+                provers: self.provers,
                 language_public_parameters: self.language_public_parameters,
                 protocol_context: self.protocol_context,
                 witnesses: self.witnesses,
                 statements,
                 randomizers: self.randomizers,
                 statement_masks: self.statement_masks,
+                statement_masks_values,
                 commitment_randomness,
             };
 
@@ -99,8 +108,7 @@ impl<
 {
     pub fn new_session(
         party_id: PartyID,
-        threshold: PartyID,
-        number_of_parties: PartyID,
+        provers: HashSet<PartyID>,
         language_public_parameters: Language::PublicParameters,
         protocol_context: ProtocolContext,
         witnesses: Vec<Language::WitnessSpaceGroupElement>,
@@ -116,8 +124,7 @@ impl<
 
         Ok(Self {
             party_id,
-            threshold,
-            number_of_parties,
+            provers,
             language_public_parameters,
             protocol_context,
             witnesses,

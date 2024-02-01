@@ -11,8 +11,8 @@ use proof::aggregation::ProofShareRoundParty;
 use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result};
+use crate::aggregation::{process_incoming_messages, proof_aggregation_round};
 use crate::aggregation::decommitment_round::Decommitment;
-use crate::aggregation::proof_aggregation_round;
 use crate::language::GroupsPublicParametersAccessors;
 use crate::language::WitnessSpaceValue;
 use crate::Proof;
@@ -35,8 +35,7 @@ pub struct Party<
     ProtocolContext: Clone,
 > {
     pub(super) party_id: PartyID,
-    pub(super) threshold: PartyID,
-    pub(super) number_of_parties: PartyID,
+    pub(crate) provers: HashSet<PartyID>,
     pub(super) language_public_parameters: Language::PublicParameters,
     pub(super) protocol_context: ProtocolContext,
     pub(super) witnesses: Vec<Language::WitnessSpaceGroupElement>,
@@ -64,27 +63,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
         decommitments: HashMap<PartyID, Self::Decommitment>,
         _rng: &mut impl CryptoRngCore,
     ) -> Result<(Self::ProofShare, Self::ProofAggregationRoundParty)> {
-        let previous_round_party_ids: HashSet<PartyID> =
-            self.commitments.keys().map(|k| *k).collect();
-
-        // First remove parties that didn't participate in the previous round, as they shouldn't be
-        // allowed to join the session half-way, and we can self-heal this malicious behaviour
-        // without needing to stop the session and report
-        let decommitments: HashMap<PartyID, Decommitment<REPETITIONS, Language>> = decommitments
-            .into_iter()
-            .filter(|(party_id, _)| *party_id != self.party_id)
-            .filter(|(party_id, _)| previous_round_party_ids.contains(party_id))
-            .collect();
-        let current_round_party_ids: HashSet<PartyID> = decommitments.keys().map(|k| *k).collect();
-
-        let unresponsive_parties: Vec<PartyID> = current_round_party_ids
-            .symmetric_difference(&previous_round_party_ids)
-            .cloned()
-            .collect();
-
-        if !unresponsive_parties.is_empty() {
-            return Err(proof::aggregation::Error::UnresponsiveParties(unresponsive_parties))?;
-        }
+        let decommitments = process_incoming_messages(self.party_id, &self.provers, decommitments)?;
 
         let reconstructed_commitments: Result<HashMap<PartyID, Commitment>> = decommitments
             .iter()
@@ -111,7 +90,8 @@ for Party<REPETITIONS, Language, ProtocolContext>
 
         let reconstructed_commitments: HashMap<PartyID, Commitment> = reconstructed_commitments?;
 
-        let miscommitting_parties: Vec<PartyID> = current_round_party_ids
+        let miscommitting_parties: Vec<PartyID> = self.provers
+            .clone()
             .into_iter()
             .filter(|party_id| reconstructed_commitments[party_id] != self.commitments[party_id])
             .collect();
@@ -237,9 +217,9 @@ for Party<REPETITIONS, Language, ProtocolContext>
         let proof_aggregation_round_party =
             proof_aggregation_round::Party::<REPETITIONS, Language, ProtocolContext> {
                 party_id: self.party_id,
+                provers: self.provers,
                 language_public_parameters: self.language_public_parameters,
                 protocol_context: self.protocol_context,
-                previous_round_party_ids,
                 statement_masks,
                 aggregated_statements,
                 aggregated_statement_masks,
