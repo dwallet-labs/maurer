@@ -54,7 +54,7 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 [[package]]
 name = "commitment"
 version = "0.1.0"
-source = "git+https://github.com/dwallet-labs/commitment.git?branch=commitment#93de2abcbee217b52aaf07f7c42abd426d5a1b1c"
+source = "git+https://github.com/dwallet-labs/commitment.git?branch=commitment#da7f384d1fd785b175ad2d54247b87013489eb55"
 dependencies = [
  "crypto-bigint",
  "group 0.1.0",

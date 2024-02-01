@@ -80,7 +80,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
             &statement_masks_values,
         )?;
 
-        let commitment = Commitment::commit_transcript(&mut transcript, &commitment_randomness);
+        let commitment = Commitment::commit_transcript(self.party_id, &mut transcript, &commitment_randomness);
 
         let decommitment_round_party =
             decommitment_round::Party::<REPETITIONS, Language, ProtocolContext> {

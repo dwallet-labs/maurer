@@ -69,8 +69,6 @@ for Party<REPETITIONS, Language, ProtocolContext>
             .iter()
             .map(|(party_id, decommitment)| {
                 Proof::<REPETITIONS, Language, ProtocolContext>::setup_transcript(
-                    // TODO: insert the party id of the other party somehow, and maybe other
-                    // things.
                     &self.protocol_context,
                     &self.language_public_parameters,
                     decommitment.statements.clone(),
@@ -80,6 +78,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
                         (
                             *party_id,
                             Commitment::commit_transcript(
+                                *party_id,
                                 &mut transcript,
                                 &decommitment.commitment_randomness,
                             ),
