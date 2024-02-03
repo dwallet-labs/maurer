@@ -15,7 +15,6 @@ use crate::{language, Proof};
 use crate::{Error, Result};
 use crate::aggregation::decommitment_round;
 
-#[cfg_attr(feature = "benchmarking", derive(Clone))]
 pub struct Party<
     // Number of times this proof should be repeated to achieve sufficient security
     const REPETITIONS: usize,

@@ -8,6 +8,7 @@ pub mod language;
 mod proof;
 pub mod aggregation;
 
+#[cfg(feature = "test_helpers")]
 pub mod test_helpers {
     pub use crate::aggregation::test_helpers::*;
     pub use crate::language::test_helpers::*;

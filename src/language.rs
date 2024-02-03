@@ -121,6 +121,7 @@ GroupsPublicParametersAccessors<
 > for T
 {}
 
+#[cfg(feature = "test_helpers")]
 pub(super) mod test_helpers {
     use core::iter;
 
@@ -128,7 +129,7 @@ pub(super) mod test_helpers {
 
     use super::*;
 
-    pub fn generate_witnesses<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
+    pub fn sample_witnesses<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
         language_public_parameters: &Lang::PublicParameters,
         batch_size: usize,
         rng: &mut impl CryptoRngCore,
@@ -144,27 +145,11 @@ pub(super) mod test_helpers {
             .collect()
     }
 
-    pub fn generate_witnesses_for_aggregation<
-        const REPETITIONS: usize,
-        Lang: Language<REPETITIONS>,
-    >(
-        language_public_parameters: &Lang::PublicParameters,
-        number_of_parties: usize,
-        batch_size: usize,
-        rng: &mut impl CryptoRngCore,
-    ) -> Vec<Vec<Lang::WitnessSpaceGroupElement>> {
-        iter::repeat_with(|| {
-            generate_witnesses::<REPETITIONS, Lang>(language_public_parameters, batch_size, rng)
-        })
-            .take(number_of_parties)
-            .collect()
-    }
-
-    pub fn generate_witness<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
+    pub fn sample_witness<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
         language_public_parameters: &Lang::PublicParameters,
         rng: &mut impl CryptoRngCore,
     ) -> Lang::WitnessSpaceGroupElement {
-        let witnesses = generate_witnesses::<REPETITIONS, Lang>(language_public_parameters, 1, rng);
+        let witnesses = sample_witnesses::<REPETITIONS, Lang>(language_public_parameters, 1, rng);
 
         witnesses.first().unwrap().clone()
     }
