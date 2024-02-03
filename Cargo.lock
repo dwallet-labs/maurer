@@ -760,11 +760,14 @@ dependencies = [
 [[package]]
 name = "proof"
 version = "0.1.0"
-source = "git+https://github.com/dwallet-labs/proof.git?branch=aggregation#f5c670ac8ab4990f9c61ddab46900711fd2482e3"
+source = "git+https://github.com/dwallet-labs/proof.git?branch=aggregation#9e1de32bddb89f9d1503da3dcf7c4d9398a806f8"
 dependencies = [
+ "criterion",
  "crypto-bigint",
  "group 0.1.0",
  "merlin",
+ "rand_core",
+ "rstest",
  "serde",
  "serde_json",
  "thiserror",
@@ -893,9 +896,9 @@ dependencies = [
 
 [[package]]
 name = "rustix"
-version = "0.38.30"
+version = "0.38.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "322394588aaf33c24007e8bb3238ee3e4c5c09c084ab32bc73890b99ff326bca"
+checksum = "6ea3e1a662af26cd7a3ba09c0297a31af215563ecf42817c98df621387f4e949"
 dependencies = [
  "bitflags",
  "errno",
@@ -962,9 +965,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.113"
+version = "1.0.112"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69801b70b1c3dac963ecb03a364ba0ceda9cf60c71cfe475e99864759c8b8a79"
+checksum = "4d1bd37ce2324cf3bf85e5a25f96eb4baf0d5aa6eba43e7ae8958870c4ec48ed"
 dependencies = [
  "itoa",
  "ryu",

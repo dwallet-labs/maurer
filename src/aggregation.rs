@@ -47,8 +47,13 @@ pub(super) mod test_helpers {
     use std::collections::HashMap;
     use std::marker::PhantomData;
 
+    #[cfg(feature = "benchmarking")]
+    use criterion::{BenchmarkGroup, measurement::WallTime};
     use crypto_bigint::rand_core::CryptoRngCore;
+    use group::GroupElement;
     use proof::aggregation::test_helpers::aggregates_internal;
+    #[cfg(feature = "benchmarking")]
+    use proof::aggregation::test_helpers::benchmark_internal_multiple;
 
     use crate::Language;
 
@@ -93,5 +98,48 @@ pub(super) mod test_helpers {
                 .is_ok(),
             "valid aggregated proofs should verify"
         );
+    }
+
+    #[cfg(feature = "benchmarking")]
+    pub fn benchmark<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
+        language_public_parameters: &Lang::PublicParameters,
+        witnesses: Vec<Vec<Lang::WitnessSpaceGroupElement>>,
+        g: &mut BenchmarkGroup<WallTime>,
+        rng: &mut impl CryptoRngCore,
+    ) {
+        let number_of_parties = witnesses.len().try_into().unwrap();
+        let provers = HashSet::from_iter(1..=number_of_parties);
+
+        let commitment_round_parties: HashMap<
+            PartyID,
+            commitment_round::Party<REPETITIONS, Lang, PhantomData<()>>,
+        > = witnesses
+            .into_iter()
+            .enumerate()
+            .map(|(party_id, witnesses)| {
+                let party_id: u16 = (party_id + 1).try_into().unwrap();
+                (
+                    party_id,
+                    commitment_round::Party::new_session(
+                        party_id,
+                        provers.clone(),
+                        language_public_parameters.clone(),
+                        PhantomData,
+                        witnesses,
+                        rng,
+                    )
+                        .unwrap(),
+                )
+            })
+            .collect();
+
+        let (commitment_round_time,
+            decommitment_round_time,
+            proof_share_round_time,
+            proof_aggregation_round_time,
+            total_time, _) = benchmark_internal_multiple(commitment_round_parties
+                                                             .into_iter()
+                                                             .map(|(party_id, party)| (party_id, vec![party]))
+                                                             .collect(), g, rng);
     }
 }

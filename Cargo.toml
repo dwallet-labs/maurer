@@ -20,15 +20,9 @@ rand_core = { version = "0.6", features = ["std"], optional = true }
 rstest = { version = "0.18", optional = true }
 
 [dev-dependencies]
-rstest = { version = "0.18" }
 rand_core = { version = "0.6", features = ["std"] }
 
 [features]
 # This feature is for internal-use only (for benchmarking) and exists due to limitations of benchmarking non-public functions in Rust.
 # There will be no SemVer support for this feature.
-benchmarking = ["dep:criterion", "dep:rand_core", "dep:rstest"]
-
-[[bench]]
-name = "benches"
-harness = false
-
+benchmarking = ["dep:criterion", "dep:rand_core", "dep:rstest", "proof/benchmarking"]
