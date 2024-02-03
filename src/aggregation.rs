@@ -127,9 +127,11 @@ pub(super) mod test_helpers {
     pub fn benchmark_aggregation<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
         language_public_parameters: &Lang::PublicParameters,
         extra_description: Option<String>,
+        as_millis: bool,
     ) {
+        let timestamp = if as_millis { "ms" } else { "µs" };
         println!(
-            "Language Name, Repetitions, Extra Description, Number of Parties, Batch Size, Commitment Round Time (µs), Decommitment Round Time (µs), Proof Share Round Time (µs), Proof Aggregation Round Time (µs), Protocol Time (µs)",
+            "Language Name, Repetitions, Extra Description, Number of Parties, Batch Size, Commitment Round Time ({timestamp}), Decommitment Round Time ({timestamp}), Proof Share Round Time ({timestamp}), Proof Aggregation Round Time ({timestamp}), Protocol Time ({timestamp})",
         );
 
         for number_of_parties in [10, 100, 1000] {
@@ -148,11 +150,11 @@ pub(super) mod test_helpers {
                     Lang::NAME,
                     REPETITIONS,
                     extra_description.clone().unwrap_or("".to_string()),
-                    commitment_round_time.as_micros(),
-                    decommitment_round_time.as_micros(),
-                    proof_share_round_time.as_micros(),
-                    proof_aggregation_round_time.as_micros(),
-                    total_time.as_micros()
+                    if as_millis { commitment_round_time.as_millis() } else { commitment_round_time.as_micros() },
+                    if as_millis { decommitment_round_time.as_millis() } else { decommitment_round_time.as_micros() },
+                    if as_millis { proof_share_round_time.as_millis() } else { proof_share_round_time.as_micros() },
+                    if as_millis { proof_aggregation_round_time.as_millis() } else { proof_aggregation_round_time.as_micros() },
+                    if as_millis { total_time.as_millis() } else { total_time.as_micros() },
                 );
             }
         }

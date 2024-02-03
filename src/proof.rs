@@ -794,11 +794,13 @@ pub(super) mod test_helpers {
     pub fn benchmark_proof<const REPETITIONS: usize, Language: language::Language<REPETITIONS>>(
         language_public_parameters: &Language::PublicParameters,
         extra_description: Option<String>,
+        as_millis: bool,
     ) {
         let measurement = WallTime;
 
+        let timestamp = if as_millis { "ms" } else { "µs" };
         println!(
-            "Language Name, Repetitions, Extra Description, Batch Size, Batch Normalize Time (µs), Setup Transcript Time (µs), Prove Time (µs), Verification Time (µs)",
+            "Language Name, Repetitions, Extra Description, Batch Size, Batch Normalize Time ({timestamp}), Setup Transcript Time ({timestamp}), Prove Time ({timestamp}), Verification Time ({timestamp})",
         );
 
         for batch_size in [1, 10, 100, 1000, 10000] {
@@ -855,10 +857,10 @@ pub(super) mod test_helpers {
                 Language::NAME,
                 REPETITIONS,
                 extra_description.clone().unwrap_or("".to_string()),
-                normalize_time.as_micros(),
-                setup_transcript_time.as_micros(),
-                prove_time.as_micros(),
-                verify_time.as_micros(),
+                if as_millis { normalize_time.as_millis() } else { normalize_time.as_micros() },
+                if as_millis { setup_transcript_time.as_millis() } else { setup_transcript_time.as_micros() },
+                if as_millis { prove_time.as_millis() } else { prove_time.as_micros() },
+                if as_millis { verify_time.as_millis() } else { verify_time.as_micros() },
             );
         }
     }
