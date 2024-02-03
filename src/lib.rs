@@ -9,6 +9,7 @@ mod proof;
 pub mod aggregation;
 pub mod knowledge_of_discrete_log;
 
+#[cfg(feature = "test_helpers")]
 pub mod test_helpers {
     pub use crate::aggregation::test_helpers::*;
     pub use crate::language::test_helpers::*;

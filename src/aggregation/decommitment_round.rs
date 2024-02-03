@@ -22,7 +22,6 @@ pub struct Decommitment<const REPETITIONS: usize, Language: language::Language<R
     pub(super) commitment_randomness: ComputationalSecuritySizedNumber,
 }
 
-#[cfg_attr(feature = "benchmarking", derive(Clone))]
 pub struct Party<
     // Number of times this proof should be repeated to achieve sufficient security
     const REPETITIONS: usize,

@@ -222,53 +222,25 @@ mod tests {
     fn aggregates(#[case] number_of_parties: usize, #[case] batch_size: usize) {
         let language_public_parameters = language_public_parameters();
 
-        let witnesses = test_helpers::generate_witnesses_for_aggregation::<SOUND_PROOFS_REPETITIONS, Lang>(
+        test_helpers::aggregates::<SOUND_PROOFS_REPETITIONS, Lang>(
             &language_public_parameters,
             number_of_parties,
             batch_size,
-            &mut OsRng,
         );
-
-        test_helpers::aggregates::<SOUND_PROOFS_REPETITIONS, Lang>(
-            &language_public_parameters,
-            witnesses,
-            &mut OsRng,
-        )
     }
 }
 
 #[cfg(feature = "benchmarking")]
 pub(crate) mod benches {
     use criterion::Criterion;
-    use rand_core::OsRng;
     use crate::test_helpers;
     use crate::knowledge_of_discrete_log::tests::{Lang, language_public_parameters};
-    use crate::proof;
     use crate::SOUND_PROOFS_REPETITIONS;
 
-    pub(crate) fn benchmark(c: &mut Criterion) {
+    pub(crate) fn benchmark(_c: &mut Criterion) {
         let language_public_parameters = language_public_parameters();
 
-        // proof::benches::benchmark::<SOUND_PROOFS_REPETITIONS, Lang>(&language_public_parameters, None, c);
-
-        // TODO: move this
-        let witnesses = test_helpers::generate_witnesses_for_aggregation::<SOUND_PROOFS_REPETITIONS, Lang>(
-            &language_public_parameters,
-            20,
-            100,
-            &mut OsRng,
-        );
-
-        // TODO: move this
-        let mut g = c.benchmark_group(format!(
-            "{:?}x{:?}-{:?}",
-            "asdf",
-            1,
-            None.unwrap_or("".to_string()),
-        ));
-
-        g.sample_size(10);
-
-        test_helpers::benchmark::<SOUND_PROOFS_REPETITIONS, Lang>(&language_public_parameters, witnesses, &mut g, &mut OsRng);
+        test_helpers::benchmark_proof::<SOUND_PROOFS_REPETITIONS, Lang>(&language_public_parameters, None);
+        test_helpers::benchmark_aggregation::<SOUND_PROOFS_REPETITIONS, Lang>(&language_public_parameters, None);
     }
 }
