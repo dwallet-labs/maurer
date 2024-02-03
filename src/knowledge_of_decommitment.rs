@@ -202,7 +202,7 @@ for PublicParameters<
     }
 }
 
-#[cfg(any(test, feature = "benchmarking"))]
+#[cfg(feature = "test_helpers")]
 mod tests {
     use commitment::pedersen;
     use commitment::pedersen::Pedersen;
@@ -320,26 +320,31 @@ mod tests {
 }
 
 #[cfg(feature = "benchmarking")]
-pub mod benches {
+pub(crate) mod benches {
     use criterion::Criterion;
-
-    use crate::{BIT_SOUNDNESS_PROOFS_REPETITIONS, SOUND_PROOFS_REPETITIONS};
+    use crate::test_helpers;
     use crate::knowledge_of_decommitment::tests::{Lang, language_public_parameters};
-    use crate::proof;
+    use crate::{BIT_SOUNDNESS_PROOFS_REPETITIONS, SOUND_PROOFS_REPETITIONS};
 
-    pub(crate) fn benchmark(c: &mut Criterion) {
-        let language_public_parameters = language_public_parameters::<crate::proof::SOUND_PROOFS_REPETITIONS, 1>();
+    pub(crate) fn benchmark(_c: &mut Criterion) {
+        // let language_public_parameters = language_public_parameters::<SOUND_PROOFS_REPETITIONS, 1>();
+        //
+        // test_helpers::benchmark_proof::<SOUND_PROOFS_REPETITIONS, Lang<SOUND_PROOFS_REPETITIONS, 1>>(&language_public_parameters, None, false);
+        // test_helpers::benchmark_aggregation::<SOUND_PROOFS_REPETITIONS, Lang<SOUND_PROOFS_REPETITIONS, 1>>(&language_public_parameters, None, false);
 
-        proof::benches::benchmark::<SOUND_PROOFS_REPETITIONS, Lang<SOUND_PROOFS_REPETITIONS, 1>>(
-            language_public_parameters.clone(),
-            None,
-            c,
-        );
+        let language_public_parameters = crate::knowledge_of_decommitment::tests::language_public_parameters::<BIT_SOUNDNESS_PROOFS_REPETITIONS, 1>();
 
-        proof::benches::benchmark::<BIT_SOUNDNESS_PROOFS_REPETITIONS, Lang<BIT_SOUNDNESS_PROOFS_REPETITIONS, 1>>(
-            language_public_parameters.clone(),
-            None,
-            c,
-        );
+        test_helpers::benchmark_proof::<BIT_SOUNDNESS_PROOFS_REPETITIONS, Lang<BIT_SOUNDNESS_PROOFS_REPETITIONS, 1>>(&language_public_parameters, Some("1".to_string()), true);
+        test_helpers::benchmark_aggregation::<BIT_SOUNDNESS_PROOFS_REPETITIONS, Lang<BIT_SOUNDNESS_PROOFS_REPETITIONS, 1>>(&language_public_parameters, Some("1".to_string()), true);
+
+        let language_public_parameters = crate::knowledge_of_decommitment::tests::language_public_parameters::<BIT_SOUNDNESS_PROOFS_REPETITIONS, 10>();
+
+        test_helpers::benchmark_proof::<BIT_SOUNDNESS_PROOFS_REPETITIONS, Lang<BIT_SOUNDNESS_PROOFS_REPETITIONS, 10>>(&language_public_parameters, Some("10".to_string()), true);
+        test_helpers::benchmark_aggregation::<BIT_SOUNDNESS_PROOFS_REPETITIONS, Lang<BIT_SOUNDNESS_PROOFS_REPETITIONS, 10>>(&language_public_parameters, Some("10".to_string()), true);
+
+        let language_public_parameters = crate::knowledge_of_decommitment::tests::language_public_parameters::<BIT_SOUNDNESS_PROOFS_REPETITIONS, 100>();
+
+        test_helpers::benchmark_proof::<BIT_SOUNDNESS_PROOFS_REPETITIONS, Lang<BIT_SOUNDNESS_PROOFS_REPETITIONS, 100>>(&language_public_parameters, Some("100".to_string()), true);
+        test_helpers::benchmark_aggregation::<BIT_SOUNDNESS_PROOFS_REPETITIONS, Lang<BIT_SOUNDNESS_PROOFS_REPETITIONS, 100>>(&language_public_parameters, Some("100".to_string()), true);
     }
 }

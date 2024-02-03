@@ -111,7 +111,7 @@ for PublicParameters<ScalarPublicParameters, GroupPublicParameters, GroupElement
 pub type Proof<Scalar, GroupElement, ProtocolContext> =
 crate::Proof<SOUND_PROOFS_REPETITIONS, Language<Scalar, GroupElement>, ProtocolContext>;
 
-#[cfg(any(test, feature = "benchmarking"))]
+#[cfg(feature = "test_helpers")]
 mod tests {
     use group::{GroupElement, secp256k1};
     use rstest::rstest;
