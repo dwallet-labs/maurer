@@ -113,16 +113,13 @@ crate::Proof<SOUND_PROOFS_REPETITIONS, Language<Scalar, GroupElement>, ProtocolC
 
 #[cfg(any(test, feature = "benchmarking"))]
 mod tests {
-    use crypto_bigint::U256;
     use group::{GroupElement, secp256k1};
-    use rand_core::OsRng;
     use rstest::rstest;
-
+    use rand_core::OsRng;
     use crate::language;
     use crate::test_helpers;
-    use crate::test_helpers::generate_witnesses_for_aggregation;
-
     use super::*;
+    use crypto_bigint::U256;
 
     pub(crate) type Lang = Language<secp256k1::Scalar, secp256k1::GroupElement>;
 
@@ -225,7 +222,7 @@ mod tests {
     fn aggregates(#[case] number_of_parties: usize, #[case] batch_size: usize) {
         let language_public_parameters = language_public_parameters();
 
-        let witnesses = generate_witnesses_for_aggregation::<SOUND_PROOFS_REPETITIONS, Lang>(
+        let witnesses = test_helpers::generate_witnesses_for_aggregation::<SOUND_PROOFS_REPETITIONS, Lang>(
             &language_public_parameters,
             number_of_parties,
             batch_size,
@@ -241,9 +238,10 @@ mod tests {
 }
 
 #[cfg(feature = "benchmarking")]
-pub mod benches {
+pub(crate) mod benches {
     use criterion::Criterion;
-
+    use rand_core::OsRng;
+    use crate::test_helpers;
     use crate::knowledge_of_discrete_log::tests::{Lang, language_public_parameters};
     use crate::proof;
     use crate::SOUND_PROOFS_REPETITIONS;
@@ -251,6 +249,26 @@ pub mod benches {
     pub(crate) fn benchmark(c: &mut Criterion) {
         let language_public_parameters = language_public_parameters();
 
-        proof::benches::benchmark::<SOUND_PROOFS_REPETITIONS, Lang>(language_public_parameters.clone(), None, c);
+        // proof::benches::benchmark::<SOUND_PROOFS_REPETITIONS, Lang>(&language_public_parameters, None, c);
+
+        // TODO: move this
+        let witnesses = test_helpers::generate_witnesses_for_aggregation::<SOUND_PROOFS_REPETITIONS, Lang>(
+            &language_public_parameters,
+            20,
+            100,
+            &mut OsRng,
+        );
+
+        // TODO: move this
+        let mut g = c.benchmark_group(format!(
+            "{:?}x{:?}-{:?}",
+            "asdf",
+            1,
+            None.unwrap_or("".to_string()),
+        ));
+
+        g.sample_size(10);
+
+        test_helpers::benchmark::<SOUND_PROOFS_REPETITIONS, Lang>(&language_public_parameters, witnesses, &mut g, &mut OsRng);
     }
 }

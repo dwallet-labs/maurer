@@ -141,5 +141,11 @@ pub(super) mod test_helpers {
                                                              .into_iter()
                                                              .map(|(party_id, party)| (party_id, vec![party]))
                                                              .collect(), g, rng);
+
+        println!("commitment round took {:?}", commitment_round_time);
+        println!("decommitment round took {:?}", decommitment_round_time);
+        println!("proof share round took {:?}", proof_share_round_time);
+        println!("proof aggregation round took {:?}", proof_aggregation_round_time);
+        println!("protocol took {:?}", total_time);
     }
 }

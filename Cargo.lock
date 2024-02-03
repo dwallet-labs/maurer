@@ -760,7 +760,7 @@ dependencies = [
 [[package]]
 name = "proof"
 version = "0.1.0"
-source = "git+https://github.com/dwallet-labs/proof.git?branch=aggregation#9e1de32bddb89f9d1503da3dcf7c4d9398a806f8"
+source = "git+https://github.com/dwallet-labs/proof.git?branch=aggregation#062144bde47f76369c37defa3319d49a4b74f801"
 dependencies = [
  "criterion",
  "crypto-bigint",

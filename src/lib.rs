@@ -10,12 +10,6 @@ pub mod aggregation;
 pub mod knowledge_of_discrete_log;
 
 pub mod test_helpers {
-    pub use crate::language::test_helpers::*;
-    pub use crate::proof::test_helpers::*;
-    pub use crate::aggregation::test_helpers::*;
-}
-
-pub mod test_helpers {
     pub use crate::aggregation::test_helpers::*;
     pub use crate::language::test_helpers::*;
     pub use crate::proof::test_helpers::*;
@@ -42,7 +36,6 @@ pub enum Error {
 
 /// Maurer result.
 pub type Result<T> = std::result::Result<T, Error>;
-
 
 #[cfg(feature = "benchmarking")]
 criterion::criterion_group!(

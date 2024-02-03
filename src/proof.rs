@@ -802,7 +802,7 @@ pub(crate) mod benches {
 
     #[allow(dead_code)]
     pub(crate) fn benchmark<const REPETITIONS: usize, Language: language::Language<REPETITIONS>>(
-        language_public_parameters: Language::PublicParameters,
+        language_public_parameters: &Language::PublicParameters,
         extra_description: Option<String>,
         c: &mut Criterion,
     ) {
