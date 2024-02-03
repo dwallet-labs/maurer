@@ -151,11 +151,12 @@ checksum = "702fc72eb24e5a1e48ce58027a675bc24edd52096d5397d4aea7c6dd9eca0bd1"
 [[package]]
 name = "commitment"
 version = "0.1.0"
-source = "git+https://github.com/dwallet-labs/commitment.git?branch=pedersen#7ee7d777a47f4cb5ff336e0fb152cf3bbbf46614"
+source = "git+https://github.com/dwallet-labs/commitment.git?branch=commitment#fe063b9dbfc90158a49b954f3024dc8729acccd4"
 dependencies = [
+ "crypto-bigint",
  "group 0.1.0",
+ "merlin",
  "serde",
- "thiserror",
 ]
 
 [[package]]
@@ -759,11 +760,14 @@ dependencies = [
 [[package]]
 name = "proof"
 version = "0.1.0"
-source = "git+https://github.com/dwallet-labs/proof.git?branch=aggregation#b82b7534e747d815f6a3938f64333c8fa60b5a12"
+source = "git+https://github.com/dwallet-labs/proof.git?branch=aggregation#1a8f2ce611a415b4d01045fa4eb5b9b5db5662d8"
 dependencies = [
+ "criterion",
  "crypto-bigint",
  "group 0.1.0",
  "merlin",
+ "rand_core",
+ "rstest",
  "serde",
  "serde_json",
  "thiserror",
@@ -892,9 +896,9 @@ dependencies = [
 
 [[package]]
 name = "rustix"
-version = "0.38.30"
+version = "0.38.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "322394588aaf33c24007e8bb3238ee3e4c5c09c084ab32bc73890b99ff326bca"
+checksum = "6ea3e1a662af26cd7a3ba09c0297a31af215563ecf42817c98df621387f4e949"
 dependencies = [
  "bitflags",
  "errno",
@@ -961,9 +965,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.113"
+version = "1.0.112"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69801b70b1c3dac963ecb03a364ba0ceda9cf60c71cfe475e99864759c8b8a79"
+checksum = "4d1bd37ce2324cf3bf85e5a25f96eb4baf0d5aa6eba43e7ae8958870c4ec48ed"
 dependencies = [
  "itoa",
  "ryu",

@@ -6,10 +6,13 @@ pub use proof::{BIT_SOUNDNESS_PROOFS_REPETITIONS, Proof, SOUND_PROOFS_REPETITION
 
 pub mod language;
 mod proof;
+pub mod aggregation;
 pub mod knowledge_of_discrete_log;
 pub mod knowledge_of_decommitment;
 
+#[cfg(feature = "test_helpers")]
 pub mod test_helpers {
+    pub use crate::aggregation::test_helpers::*;
     pub use crate::language::test_helpers::*;
     pub use crate::proof::test_helpers::*;
 }
@@ -23,6 +26,8 @@ pub enum Error {
     Proof(#[from] ::proof::Error),
     #[error("commitment error")]
     Commitment(#[from] commitment::Error),
+    #[error("aggregation error")]
+    Aggregation(#[from] ::proof::aggregation::Error),
     #[error("unsupported repetitions: must be either 1 or 128")]
     UnsupportedRepetitions,
     #[error("invalid parameters")]
@@ -35,7 +40,6 @@ pub enum Error {
 
 /// Maurer result.
 pub type Result<T> = std::result::Result<T, Error>;
-
 
 #[cfg(feature = "benchmarking")]
 criterion::criterion_group!(
