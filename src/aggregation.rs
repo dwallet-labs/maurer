@@ -27,14 +27,16 @@ fn process_incoming_messages<T>(party_id: PartyID, provers: HashSet<PartyID>, me
         .filter(|(pid, _)| provers.contains(pid))
         .collect();
 
-    let current_round_party_ids: HashSet<PartyID> = messages.keys().filter(|&pid| *pid != party_id).copied().collect();
+    let current_round_party_ids: HashSet<PartyID> = messages.keys().copied().collect();
 
-    let other_provers = provers.into_iter().filter(|pid| *pid != party_id).collect();
+    let other_provers: HashSet<_> = provers.into_iter().filter(|pid| *pid != party_id).collect();
 
-    let unresponsive_parties: Vec<PartyID> = current_round_party_ids
-        .symmetric_difference(&other_provers)
+    let mut unresponsive_parties: Vec<PartyID> = other_provers
+        .symmetric_difference(&current_round_party_ids)
         .cloned()
         .collect();
+
+    unresponsive_parties.sort();
 
     if !unresponsive_parties.is_empty() {
         return Err(proof::aggregation::Error::UnresponsiveParties(unresponsive_parties))?;
@@ -73,11 +75,13 @@ pub(super) mod test_helpers {
 
     fn setup<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
         language_public_parameters: &Lang::PublicParameters,
-        witnesses: Vec<Vec<Lang::WitnessSpaceGroupElement>>,
+        number_of_parties: usize,
+        batch_size: usize,
     ) -> HashMap<
         PartyID,
         commitment_round::Party<REPETITIONS, Lang, PhantomData<()>>,
     > {
+        let witnesses = sample_witnesses_for_aggregation::<REPETITIONS, Lang>(language_public_parameters, number_of_parties, batch_size);
         let number_of_parties = witnesses.len().try_into().unwrap();
         let provers = HashSet::from_iter(1..=number_of_parties);
 
@@ -107,8 +111,7 @@ pub(super) mod test_helpers {
         number_of_parties: usize,
         batch_size: usize,
     ) {
-        let witnesses = sample_witnesses_for_aggregation::<REPETITIONS, Lang>(language_public_parameters, number_of_parties, batch_size);
-        let commitment_round_parties = setup::<REPETITIONS, Lang>(language_public_parameters, witnesses);
+        let commitment_round_parties = setup::<REPETITIONS, Lang>(language_public_parameters, number_of_parties, batch_size);
 
         let (_,
             _,
@@ -124,6 +127,37 @@ pub(super) mod test_helpers {
         );
     }
 
+    pub fn unresponsive_parties_aborts_session_identifiably<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
+        language_public_parameters: &Lang::PublicParameters,
+        number_of_parties: usize,
+        batch_size: usize,
+    ) {
+        let commitment_round_parties = setup::<REPETITIONS, Lang>(language_public_parameters, number_of_parties, batch_size);
+
+        proof::aggregation::test_helpers::unresponsive_parties_aborts_session_identifiably(commitment_round_parties);
+    }
+
+    pub fn wrong_decommitment_aborts_session_identifiably<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
+        language_public_parameters: &Lang::PublicParameters,
+        number_of_parties: usize,
+        batch_size: usize,
+    ) {
+        let commitment_round_parties = setup::<REPETITIONS, Lang>(language_public_parameters, number_of_parties, batch_size);
+
+        proof::aggregation::test_helpers::wrong_decommitment_aborts_session_identifiably(commitment_round_parties);
+    }
+
+    pub fn failed_proof_share_verification_aborts_session_identifiably<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
+        language_public_parameters: &Lang::PublicParameters,
+        number_of_parties: usize,
+        batch_size: usize,
+    ) {
+        let commitment_round_parties = setup::<REPETITIONS, Lang>(language_public_parameters, number_of_parties, batch_size);
+        let wrong_commitment_round_parties = setup::<REPETITIONS, Lang>(language_public_parameters, number_of_parties, batch_size);
+
+        proof::aggregation::test_helpers::failed_proof_share_verification_aborts_session_identifiably(commitment_round_parties, wrong_commitment_round_parties);
+    }
+
     pub fn benchmark_aggregation<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
         language_public_parameters: &Lang::PublicParameters,
         extra_description: Option<String>,
@@ -136,8 +170,7 @@ pub(super) mod test_helpers {
 
         for number_of_parties in [10, 100, 1000] {
             for batch_size in [1, 10, 100, 1000, 10000] {
-                let witnesses = sample_witnesses_for_aggregation::<REPETITIONS, Lang>(language_public_parameters, number_of_parties, batch_size);
-                let commitment_round_parties = setup::<REPETITIONS, Lang>(language_public_parameters, witnesses);
+                let commitment_round_parties = setup::<REPETITIONS, Lang>(language_public_parameters, number_of_parties, batch_size);
 
                 let (commitment_round_time,
                     decommitment_round_time,

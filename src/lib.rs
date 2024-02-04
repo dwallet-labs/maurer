@@ -41,6 +41,17 @@ pub enum Error {
 /// Maurer result.
 pub type Result<T> = std::result::Result<T, Error>;
 
+impl TryInto<::proof::aggregation::Error> for Error {
+    type Error = Error;
+
+    fn try_into(self) -> std::result::Result<::proof::aggregation::Error, Self::Error> {
+        match self {
+            Error::Aggregation(e) => Ok(e),
+            e => Err(e)
+        }
+    }
+}
+
 #[cfg(feature = "benchmarking")]
 criterion::criterion_group!(
     benches,

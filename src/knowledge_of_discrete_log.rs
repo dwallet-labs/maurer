@@ -111,7 +111,7 @@ for PublicParameters<ScalarPublicParameters, GroupPublicParameters, GroupElement
 pub type Proof<Scalar, GroupElement, ProtocolContext> =
 crate::Proof<SOUND_PROOFS_REPETITIONS, Language<Scalar, GroupElement>, ProtocolContext>;
 
-#[cfg(feature = "test_helpers")]
+#[cfg(any(test, feature = "benchmarking"))]
 mod tests {
     use group::{GroupElement, secp256k1};
     use rstest::rstest;
@@ -223,6 +223,48 @@ mod tests {
         let language_public_parameters = language_public_parameters();
 
         test_helpers::aggregates::<SOUND_PROOFS_REPETITIONS, Lang>(
+            &language_public_parameters,
+            number_of_parties,
+            batch_size,
+        );
+    }
+
+    #[rstest]
+    #[case(2, 1)]
+    #[case(3, 1)]
+    #[case(5, 2)]
+    fn unresponsive_parties_aborts_session_identifiably(#[case] number_of_parties: usize, #[case] batch_size: usize) {
+        let language_public_parameters = language_public_parameters();
+
+        test_helpers::unresponsive_parties_aborts_session_identifiably::<SOUND_PROOFS_REPETITIONS, Lang>(
+            &language_public_parameters,
+            number_of_parties,
+            batch_size,
+        );
+    }
+
+    #[rstest]
+    #[case(2, 1)]
+    #[case(3, 1)]
+    #[case(5, 2)]
+    fn wrong_decommitment_aborts_session_identifiably(#[case] number_of_parties: usize, #[case] batch_size: usize) {
+        let language_public_parameters = language_public_parameters();
+
+        test_helpers::wrong_decommitment_aborts_session_identifiably::<SOUND_PROOFS_REPETITIONS, Lang>(
+            &language_public_parameters,
+            number_of_parties,
+            batch_size,
+        );
+    }
+
+    #[rstest]
+    #[case(2, 1)]
+    #[case(3, 1)]
+    #[case(5, 2)]
+    fn failed_proof_share_verification_aborts_session_identifiably(#[case] number_of_parties: usize, #[case] batch_size: usize) {
+        let language_public_parameters = language_public_parameters();
+
+        test_helpers::failed_proof_share_verification_aborts_session_identifiably::<SOUND_PROOFS_REPETITIONS, Lang>(
             &language_public_parameters,
             number_of_parties,
             batch_size,
