@@ -228,6 +228,20 @@ mod tests {
             batch_size,
         );
     }
+
+    #[rstest]
+    #[case(2, 1)]
+    #[case(3, 1)]
+    #[case(5, 2)]
+    fn unresponsive_parties_aborts_session_identifiably(#[case] number_of_parties: usize, #[case] batch_size: usize) {
+        let language_public_parameters = language_public_parameters();
+
+        test_helpers::unresponsive_parties_aborts_session_identifiably::<SOUND_PROOFS_REPETITIONS, Lang>(
+            &language_public_parameters,
+            number_of_parties,
+            batch_size,
+        );
+    }
 }
 
 #[cfg(feature = "benchmarking")]
