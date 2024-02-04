@@ -317,6 +317,64 @@ mod tests {
             &mut OsRng,
         )
     }
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(1, 2)]
+    #[case(2, 1)]
+    #[case(2, 3)]
+    #[case(5, 2)]
+    fn aggregates(#[case] number_of_parties: usize, #[case] batch_size: usize) {
+        let language_public_parameters = language_public_parameters::<SOUND_PROOFS_REPETITIONS, 1>();
+
+        test_helpers::aggregates::<SOUND_PROOFS_REPETITIONS, Lang<SOUND_PROOFS_REPETITIONS, 1>>(
+            &language_public_parameters,
+            number_of_parties,
+            batch_size,
+        );
+    }
+
+    #[rstest]
+    #[case(2, 1)]
+    #[case(3, 1)]
+    #[case(5, 2)]
+    fn unresponsive_parties_aborts_session_identifiably(#[case] number_of_parties: usize, #[case] batch_size: usize) {
+        let language_public_parameters = language_public_parameters::<SOUND_PROOFS_REPETITIONS, 1>();
+
+        test_helpers::unresponsive_parties_aborts_session_identifiably::<SOUND_PROOFS_REPETITIONS, Lang<SOUND_PROOFS_REPETITIONS, 1>>(
+            &language_public_parameters,
+            number_of_parties,
+            batch_size,
+        );
+    }
+
+    #[rstest]
+    #[case(2, 1)]
+    #[case(3, 1)]
+    #[case(5, 2)]
+    fn wrong_decommitment_aborts_session_identifiably(#[case] number_of_parties: usize, #[case] batch_size: usize) {
+        let language_public_parameters = language_public_parameters::<SOUND_PROOFS_REPETITIONS, 1>();
+
+        test_helpers::wrong_decommitment_aborts_session_identifiably::<SOUND_PROOFS_REPETITIONS, Lang<SOUND_PROOFS_REPETITIONS, 1>>(
+            &language_public_parameters,
+            number_of_parties,
+            batch_size,
+        );
+    }
+
+    #[rstest]
+    #[case(2, 1)]
+    #[case(3, 1)]
+    #[case(5, 2)]
+    fn failed_proof_share_verification_aborts_session_identifiably(#[case] number_of_parties: usize, #[case] batch_size: usize) {
+        let language_public_parameters = language_public_parameters::<SOUND_PROOFS_REPETITIONS, 1>();
+
+        test_helpers::failed_proof_share_verification_aborts_session_identifiably::<SOUND_PROOFS_REPETITIONS, Lang<SOUND_PROOFS_REPETITIONS, 1>>(
+            &language_public_parameters,
+            number_of_parties,
+            batch_size,
+        );
+    }
 }
 
 #[cfg(feature = "benchmarking")]
