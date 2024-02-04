@@ -32,6 +32,7 @@ pub struct Party<
     pub(super) language_public_parameters: Language::PublicParameters,
     pub(super) protocol_context: ProtocolContext,
     pub(super) statement_masks: HashMap<PartyID, [group::Value<Language::StatementSpaceGroupElement>; REPETITIONS]>,
+    pub(super) statements: HashMap<PartyID, Vec<Language::StatementSpaceGroupElement>>,
     pub(super) aggregated_statements: Vec<Language::StatementSpaceGroupElement>,
     pub(super) aggregated_statement_masks: [Language::StatementSpaceGroupElement; REPETITIONS],
     pub(super) responses: [Language::WitnessSpaceGroupElement; REPETITIONS],
@@ -140,22 +141,24 @@ for Party<REPETITIONS, Language, ProtocolContext>
             let proofs: HashMap<_, _> = proof_shares
                 .into_iter()
                 .map(|(party_id, proof_share)| {
-                    self.statement_masks.get(&party_id).map(|&statement_masks| (
+                    (
                         party_id,
                         Proof::<REPETITIONS, Language, ProtocolContext>::new(
-                            statement_masks,
+                            // Same parties participating in all rounds, safe to `.unwrap()`.
+                            *self.statement_masks.get(&party_id).unwrap(),
                             proof_share.map(|share| share.value()),
                         ),
-                    )).ok_or(Error::InternalError) // Same parties participating in all rounds.
-                }).collect::<Result<_>>()?;
+                    )
+                }).collect();
 
             let mut proof_share_cheating_parties: Vec<PartyID> =
-                proofs.into_iter().filter(|(_, proof)| {
+                proofs.into_iter().filter(|(party_id, proof)| {
                     proof
                         .verify_inner(
                             challenges.clone(),
                             &self.language_public_parameters,
-                            self.aggregated_statements.clone(),
+                            // Same parties participating in all rounds, safe to `.unwrap()`.
+                            self.statements.get(party_id).unwrap().clone(),
                         )
                         .is_err()
                 })

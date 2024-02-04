@@ -100,12 +100,13 @@ for Party<REPETITIONS, Language, ProtocolContext>
             return Err(proof::aggregation::Error::WrongDecommitment(miscommitting_parties))?;
         }
 
-        let statement_masks: group::Result<
-            Vec<[Language::StatementSpaceGroupElement; REPETITIONS]>,
+        let statement_masks: HashMap<
+            PartyID,
+            group::Result<_>,
         > = decommitments
-            .values()
-            .map(|decommitment| {
-                decommitment
+            .iter()
+            .map(|(party_id, decommitment)| {
+                (*party_id, decommitment
                     .statement_masks
                     .map(|statement_mask| {
                         Language::StatementSpaceGroupElement::new(
@@ -115,8 +116,24 @@ for Party<REPETITIONS, Language, ProtocolContext>
                                 .statement_space_public_parameters(),
                         )
                     })
-                    .flat_map_results()
+                    .flat_map_results())
             })
+            .collect();
+
+        let mut parties_sending_invalid_statement_masks: Vec<PartyID> = statement_masks
+            .iter()
+            .filter(|(_, statement_masks)| statement_masks.is_err())
+            .map(|(party_id, _)| *party_id)
+            .collect();
+        parties_sending_invalid_statement_masks.sort();
+
+        if !parties_sending_invalid_statement_masks.is_empty() {
+            return Err(proof::aggregation::Error::InvalidDecommitment(
+                parties_sending_invalid_statement_masks,
+            ))?;
+        }
+
+        let statement_masks: HashMap<_, _> = statement_masks.into_iter().map(|(party_id, statement_masks)| (party_id, statement_masks.unwrap()))
             .collect();
 
         let number_of_statements = self.statements.len();
@@ -133,7 +150,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
             ))?;
         }
 
-        let aggregated_statement_masks = statement_masks?.into_iter().fold(
+        let aggregated_statement_masks = statement_masks.into_values().fold(
             Ok(self.statement_masks),
             |aggregated_statement_masks, statement_masks| {
                 aggregated_statement_masks.and_then(|aggregated_statement_masks| {
@@ -150,12 +167,15 @@ for Party<REPETITIONS, Language, ProtocolContext>
             },
         )?;
 
-        let statements_vector: group::Result<Vec<Vec<Language::StatementSpaceGroupElement>>> =
+        let statements: HashMap<
+            PartyID,
+            group::Result<Vec<_>>,
+        > =
             decommitments
                 .clone()
-                .into_values()
-                .map(|decommitment| {
-                    decommitment
+                .into_iter()
+                .map(|(party_id, decommitment)| {
+                    (party_id, decommitment
                         .statements
                         .into_iter()
                         .map(|statement_value| {
@@ -166,17 +186,31 @@ for Party<REPETITIONS, Language, ProtocolContext>
                                     .statement_space_public_parameters(),
                             )
                         })
-                        .collect()
+                        .collect())
                 })
                 .collect();
 
-        let statements_vector = statements_vector?;
+        let mut parties_sending_invalid_statements: Vec<PartyID> = statements
+            .iter()
+            .filter(|(_, statement)| statement.is_err())
+            .map(|(party_id, _)| *party_id)
+            .collect();
+        parties_sending_invalid_statements.sort();
+
+        if !parties_sending_invalid_statements.is_empty() {
+            return Err(proof::aggregation::Error::InvalidDecommitment(
+                parties_sending_invalid_statements,
+            ))?;
+        }
+
+        let statements: HashMap<_, _> = statements.into_iter().map(|(party_id, statement)| (party_id, statement.unwrap()))
+            .collect();
 
         let aggregated_statements: Vec<Language::StatementSpaceGroupElement> = (0
             ..number_of_statements)
             .map(|i| {
-                statements_vector
-                    .iter()
+                statements
+                    .values()
                     .map(|statements| statements[i].clone())
                     .fold(
                         self.statements[i].clone(),
@@ -220,6 +254,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
                 provers: self.provers,
                 language_public_parameters: self.language_public_parameters,
                 protocol_context: self.protocol_context,
+                statements,
                 statement_masks,
                 aggregated_statements,
                 aggregated_statement_masks,
