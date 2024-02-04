@@ -137,6 +137,16 @@ pub(super) mod test_helpers {
         proof::aggregation::test_helpers::unresponsive_parties_aborts_session_identifiably(commitment_round_parties);
     }
 
+    pub fn wrong_decommitment_aborts_session_identifiably<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
+        language_public_parameters: &Lang::PublicParameters,
+        number_of_parties: usize,
+        batch_size: usize,
+    ) {
+        let commitment_round_parties = setup::<REPETITIONS, Lang>(language_public_parameters, number_of_parties, batch_size);
+
+        proof::aggregation::test_helpers::wrong_decommitment_aborts_session_identifiably(commitment_round_parties);
+    }
+
     pub fn benchmark_aggregation<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
         language_public_parameters: &Lang::PublicParameters,
         extra_description: Option<String>,

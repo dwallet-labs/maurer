@@ -77,11 +77,12 @@ for Party<REPETITIONS, Language, ProtocolContext>
             })
             .collect();
 
-        let parties_sending_invalid_proof_shares: Vec<PartyID> = proof_shares
+        let mut parties_sending_invalid_proof_shares: Vec<PartyID> = proof_shares
             .iter()
             .filter(|(_, proof_share)| proof_share.is_err())
             .map(|(party_id, _)| *party_id)
             .collect();
+        parties_sending_invalid_proof_shares.sort();
 
         if !parties_sending_invalid_proof_shares.is_empty() {
             return Err(proof::aggregation::Error::InvalidProofShare(
@@ -148,7 +149,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
                     )).ok_or(Error::InternalError) // Same parties participating in all rounds.
                 }).collect::<Result<_>>()?;
 
-            let proof_share_cheating_parties: Vec<PartyID> =
+            let mut proof_share_cheating_parties: Vec<PartyID> =
                 proofs.into_iter().filter(|(_, proof)| {
                     proof
                         .verify_inner(
@@ -160,6 +161,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
                 })
                     .map(|(party_id, _)| party_id)
                     .collect();
+            proof_share_cheating_parties.sort();
 
             return Err(proof::aggregation::Error::ProofShareVerification(
                 proof_share_cheating_parties,

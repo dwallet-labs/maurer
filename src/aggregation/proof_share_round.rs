@@ -91,9 +91,10 @@ for Party<REPETITIONS, Language, ProtocolContext>
 
         let reconstructed_commitments: HashMap<PartyID, Commitment> = reconstructed_commitments?;
 
-        let miscommitting_parties: Vec<PartyID> = decommitments.keys().cloned()
+        let mut miscommitting_parties: Vec<PartyID> = decommitments.keys().cloned()
             .filter(|party_id| reconstructed_commitments[party_id] != self.commitments[party_id])
             .collect();
+        miscommitting_parties.sort();
 
         if !miscommitting_parties.is_empty() {
             return Err(proof::aggregation::Error::WrongDecommitment(miscommitting_parties))?;
