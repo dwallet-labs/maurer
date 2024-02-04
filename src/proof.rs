@@ -150,17 +150,15 @@ impl<
 
         let batch_size = witnesses.len();
 
-        let statement_masks_values = statement_masks
-            .clone()
-            .map(|statement_mask| statement_mask.value());
+        let statement_masks_values =
+            Language::StatementSpaceGroupElement::batch_normalize_const_generic(statement_masks);
+
+        let statements_values = Language::StatementSpaceGroupElement::batch_normalize(statements.clone());
 
         let mut transcript = Self::setup_transcript(
             protocol_context,
             language_public_parameters,
-            statements
-                .iter()
-                .map(|statement| statement.value())
-                .collect(),
+            statements_values,
             &statement_masks_values,
         )?;
 
@@ -168,7 +166,7 @@ impl<
             Self::compute_challenges(batch_size, &mut transcript);
 
         let challenge_bit_size = Language::challenge_bits(batch_size)?;
-        let responses = randomizers
+        let responses = Language::WitnessSpaceGroupElement::batch_normalize_const_generic(randomizers
             .into_iter()
             .zip(challenges)
             .map(|(randomizer, challenges)| {
@@ -195,11 +193,11 @@ impl<
                         |witnesses_and_challenges_linear_combination| {
                             randomizer + witnesses_and_challenges_linear_combination
                         },
-                    ).value()
+                    )
             })
             .collect::<Vec<_>>()
             .try_into()
-            .map_err(|_| crate::Error::InternalError)?;
+            .map_err(|_| crate::Error::InternalError)?);
 
         Ok(Self::new(statement_masks_values, responses))
     }
@@ -216,10 +214,7 @@ impl<
         let mut transcript = Self::setup_transcript(
             protocol_context,
             language_public_parameters,
-            statements
-                .iter()
-                .map(|statement| statement.value())
-                .collect(),
+            Language::StatementSpaceGroupElement::batch_normalize(statements.clone()),
             &self.statement_masks,
         )?;
 

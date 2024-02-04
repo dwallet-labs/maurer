@@ -14,6 +14,7 @@ use serde::Serialize;
 use crate::{language, Proof};
 use crate::{Error, Result};
 use crate::aggregation::decommitment_round;
+use crate::aggregation::decommitment_round::Decommitment;
 
 pub struct Party<
     // Number of times this proof should be repeated to achieve sufficient security
@@ -64,22 +65,26 @@ for Party<REPETITIONS, Language, ProtocolContext>
 
         let commitment_randomness = ComputationalSecuritySizedNumber::random(rng);
 
-        let statement_masks_values = self
-            .statement_masks
-            .clone()
-            .map(|statement_mask| statement_mask.value());
+        let statement_masks_values =
+            Language::StatementSpaceGroupElement::batch_normalize_const_generic(self
+                .statement_masks.clone());
+
+        let statements_values = Language::StatementSpaceGroupElement::batch_normalize(statements.clone());
 
         let mut transcript = Proof::<REPETITIONS, Language, ProtocolContext>::setup_transcript(
             &self.protocol_context,
             &self.language_public_parameters,
-            statements
-                .iter()
-                .map(|statement| statement.value())
-                .collect(),
+            statements_values.clone(),
             &statement_masks_values,
         )?;
 
         let commitment = Commitment::commit_transcript(self.party_id, "maurer proof aggregation - commitment round commitment".to_string(), &mut transcript, &commitment_randomness);
+
+        let decommitment = Decommitment::<REPETITIONS, Language> {
+            statements: statements_values,
+            statement_masks: statement_masks_values,
+            commitment_randomness,
+        };
 
         let decommitment_round_party =
             decommitment_round::Party::<REPETITIONS, Language, ProtocolContext> {
@@ -91,8 +96,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
                 statements,
                 randomizers: self.randomizers,
                 statement_masks: self.statement_masks,
-                statement_masks_values,
-                commitment_randomness,
+                decommitment,
             };
 
         Ok((commitment, decommitment_round_party))
