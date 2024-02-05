@@ -29,7 +29,7 @@ pub(super) type ChallengeSizedNumber =
 /// Implements Appendix B. Maurer Protocols in the paper.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Proof<
-    // Number of times this proof should be repeated to achieve sufficient security
+    // Number of parallel repetitions required to get a negligible soundness error.
     const REPETITIONS: usize,
     // The language we are proving
     Language: language::Language<REPETITIONS>,
@@ -223,19 +223,31 @@ impl<
             &self.statement_masks,
         )?;
 
-        self.verify_inner(&mut transcript, language_public_parameters, statements)
+        let challenges: [Vec<ChallengeSizedNumber>; REPETITIONS] =
+            Self::compute_challenges(statements.len(), &mut transcript);
+
+        self.verify_inner(challenges, language_public_parameters, statements)
     }
 
-    pub(crate) fn verify_inner(
+    fn verify_with_transcript(
         &self,
         transcript: &mut Transcript,
         language_public_parameters: &Language::PublicParameters,
         statements: Vec<Language::StatementSpaceGroupElement>,
     ) -> Result<()> {
-        let batch_size = statements.len();
-
         let challenges: [Vec<ChallengeSizedNumber>; REPETITIONS] =
-            Self::compute_challenges(batch_size, transcript);
+            Self::compute_challenges(statements.len(), transcript);
+
+        self.verify_inner(challenges, language_public_parameters, statements)
+    }
+
+    pub(crate) fn verify_inner(
+        &self,
+        challenges: [Vec<ChallengeSizedNumber>; REPETITIONS],
+        language_public_parameters: &Language::PublicParameters,
+        statements: Vec<Language::StatementSpaceGroupElement>,
+    ) -> Result<()> {
+        let batch_size = statements.len();
 
         let responses = self
             .responses
@@ -368,7 +380,7 @@ impl<
         Ok(transcript)
     }
 
-    fn compute_challenges(
+    pub(crate) fn compute_challenges(
         batch_size: usize,
         transcript: &mut Transcript,
     ) -> [Vec<ChallengeSizedNumber>; REPETITIONS] {
