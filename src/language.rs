@@ -13,7 +13,7 @@ use crate::Result;
 /// Can be generically used to generate a batched Maurer zero-knowledge `Proof`.
 /// As defined in Appendix B. Maurer Protocols in the paper.
 pub trait Language<
-    // Number of times maurer proofs for this language should be repeated to achieve sufficient security
+    // Number of times maurer proof parallel repetitions needed to achieve sufficiently small knowledge soundness error
     const REPETITIONS: usize,
 >: Clone + PartialEq + Eq + Debug {
     /// An element of the witness space $(\HH_\pp, +)$
@@ -24,7 +24,7 @@ pub trait Language<
 
     /// Public parameters for a language family $\pp \gets \Setup(1^\kappa)$.
     ///
-    /// Includes the public parameters of the witness, and statement groups.
+    /// Includes the public parameters of the witness and statement groups.
     ///
     /// Group public parameters are encoded separately in
     /// `WitnessSpaceGroupElement::PublicParameters` and
@@ -42,7 +42,7 @@ pub trait Language<
     /// transcript.
     const NAME: &'static str;
 
-    /// The number of bits to use for the challenge
+    /// The number of bits to use for the challenge (per repetition).
     fn challenge_bits() -> Result<usize> {
         if REPETITIONS == SOUND_PROOFS_REPETITIONS {
             Ok(ComputationalSecuritySizedNumber::BITS)
@@ -53,10 +53,11 @@ pub trait Language<
         }
     }
 
-    /// A group homomorphism $\phi:\HH\to\GG$  from $(\HH_\pp, +)$, the witness space,
-    /// to $(\GG_\pp,\cdot)$, the statement space space.
+    /// A group homomorphism $\phi:\HH\to\GG$ from $(\HH_\pp, +)$, the witness space,
+    /// to $(\GG_\pp,\cdot)$, the statement space.
     ///
-    /// The name of this method, `homomorphose` is inspired by the wonderful book "Gödel, Escher, Bach: An Eternal Golden Braid", by Douglas R. Hofstadter, and specifically,
+    /// The name of this method, `homomorphose` is inspired by the wonderful book
+    /// "Gödel, Escher, Bach: An Eternal Golden Braid", by Douglas R. Hofstadter, and specifically,
     /// Escher's painting "Metamorphosis II", in which the theme `METAMORPHOSE` is central:
     /// https://www.digitalcommonwealth.org/search/commonwealth:ww72cb78j
     fn homomorphose(
@@ -67,16 +68,22 @@ pub trait Language<
 
 pub type PublicParameters<const REPETITIONS: usize, L> =
 <L as Language<REPETITIONS>>::PublicParameters;
+
 pub type WitnessSpaceGroupElement<const REPETITIONS: usize, L> =
 <L as Language<REPETITIONS>>::WitnessSpaceGroupElement;
+
 pub type WitnessSpacePublicParameters<const REPETITIONS: usize, L> =
 group::PublicParameters<WitnessSpaceGroupElement<REPETITIONS, L>>;
+
 pub type WitnessSpaceValue<const REPETITIONS: usize, L> =
 group::Value<WitnessSpaceGroupElement<REPETITIONS, L>>;
+
 pub type StatementSpaceGroupElement<const REPETITIONS: usize, L> =
 <L as Language<REPETITIONS>>::StatementSpaceGroupElement;
+
 pub type StatementSpacePublicParameters<const REPETITIONS: usize, L> =
 group::PublicParameters<StatementSpaceGroupElement<REPETITIONS, L>>;
+
 pub type StatementSpaceValue<const REPETITIONS: usize, L> =
 group::Value<StatementSpaceGroupElement<REPETITIONS, L>>;
 
