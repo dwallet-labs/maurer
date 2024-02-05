@@ -31,10 +31,14 @@ fn process_incoming_messages<T>(party_id: PartyID, provers: HashSet<PartyID>, me
 
     let other_provers = provers.into_iter().filter(|pid| *pid != party_id).collect();
 
-    let unresponsive_parties: Vec<PartyID> = current_round_party_ids
-        .symmetric_difference(&other_provers)
+    let other_provers: HashSet<_> = provers.into_iter().filter(|pid| *pid != party_id).collect();
+
+    let mut unresponsive_parties: Vec<PartyID> = other_provers
+        .symmetric_difference(&current_round_party_ids)
         .cloned()
         .collect();
+
+    unresponsive_parties.sort();
 
     if !unresponsive_parties.is_empty() {
         return Err(proof::aggregation::Error::UnresponsiveParties(unresponsive_parties))?;

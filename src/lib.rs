@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 pub use language::Language;
-pub use proof::{BIT_SOUNDNESS_PROOFS_REPETITIONS, Proof, SOUND_PROOFS_REPETITIONS};
+pub use proof::Proof;
 
 pub mod language;
 mod proof;
@@ -10,7 +10,6 @@ pub mod aggregation;
 
 #[cfg(feature = "test_helpers")]
 pub mod test_helpers {
-    pub use crate::aggregation::test_helpers::*;
     pub use crate::language::test_helpers::*;
     pub use crate::proof::test_helpers::*;
 }
@@ -36,3 +35,14 @@ pub enum Error {
 
 /// Maurer result.
 pub type Result<T> = std::result::Result<T, Error>;
+
+impl TryInto<::proof::aggregation::Error> for Error {
+    type Error = Error;
+
+    fn try_into(self) -> std::result::Result<::proof::aggregation::Error, Self::Error> {
+        match self {
+            Error::Aggregation(e) => Ok(e),
+            e => Err(e)
+        }
+    }
+}

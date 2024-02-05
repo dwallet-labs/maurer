@@ -29,7 +29,7 @@ pub(super) type ChallengeSizedNumber =
 /// Implements Appendix B. Maurer Protocols in the paper.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Proof<
-    // Number of times this proof should be repeated to achieve sufficient security
+    // Number of parallel repetitions required to get a negligible soundness error.
     const REPETITIONS: usize,
     // The language we are proving
     Language: language::Language<REPETITIONS>,
@@ -792,22 +792,24 @@ pub(super) mod test_helpers {
     }
 
     pub fn benchmark_proof<const REPETITIONS: usize, Language: language::Language<REPETITIONS>>(
-        language_public_parameters: Language::PublicParameters,
+        language_public_parameters: &Language::PublicParameters,
         extra_description: Option<String>,
+        as_millis: bool,
     ) {
         let measurement = WallTime;
 
+        let timestamp = if as_millis { "ms" } else { "µs" };
         println!(
-            "Language Name, Repetitions, Extra Description, Batch Size, Batch Normalize Time (µs), Setup Transcript Time (µs), Prove Time (µs), Verification Time (µs)",
+            "\nLanguage Name, Repetitions, Extra Description, Batch Size, Batch Normalize Time (µs), Setup Transcript Time (µs), Prove Time ({timestamp}), Verification Time ({timestamp})",
         );
 
         for batch_size in [1, 10, 100, 1000, 10000] {
             let witnesses =
-                sample_witnesses::<REPETITIONS, Language>(&language_public_parameters, batch_size, &mut OsRng);
+                sample_witnesses::<REPETITIONS, Language>(language_public_parameters, batch_size, &mut OsRng);
 
             let statements: Result<Vec<_>> = witnesses
                 .iter()
-                .map(|witness| Language::homomorphose(witness, &language_public_parameters))
+                .map(|witness| Language::homomorphose(witness, language_public_parameters))
                 .collect();
 
             let statements = statements.unwrap();
@@ -821,7 +823,7 @@ pub(super) mod test_helpers {
             let now = measurement.start();
             criterion::black_box(Proof::<REPETITIONS, Language, PhantomData<()>>::setup_transcript(
                 &PhantomData,
-                &language_public_parameters,
+                language_public_parameters,
                 statements_values.clone(),
                 // just a stub value as the value doesn't affect the benchmarking of
                 // this function
@@ -832,7 +834,7 @@ pub(super) mod test_helpers {
             let now = measurement.start();
             let proof = Proof::<REPETITIONS, Language, PhantomData<()>>::prove_with_statements(
                 &PhantomData,
-                &language_public_parameters,
+                language_public_parameters,
                 witnesses.clone(),
                 statements.clone(),
                 &mut OsRng,
@@ -844,21 +846,21 @@ pub(super) mod test_helpers {
 
             proof.verify(
                 &PhantomData,
-                &language_public_parameters,
+                language_public_parameters,
                 statements.clone(),
             ).unwrap();
 
             let verify_time = measurement.end(now);
 
             println!(
-                "{:?}, {:?}, {:?}, {batch_size}, {:?}, {:?}, {:?}, {:?}",
+                "{}, {}, {}, {batch_size}, {:?}, {:?}, {:?}, {:?}",
                 Language::NAME,
                 REPETITIONS,
                 extra_description.clone().unwrap_or("".to_string()),
                 normalize_time.as_micros(),
                 setup_transcript_time.as_micros(),
-                prove_time.as_micros(),
-                verify_time.as_micros(),
+                if as_millis { prove_time.as_millis() } else { prove_time.as_micros() },
+                if as_millis { verify_time.as_millis() } else { verify_time.as_micros() },
             );
         }
     }
