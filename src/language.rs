@@ -13,7 +13,8 @@ use crate::Result;
 /// Can be generically used to generate a batched Maurer zero-knowledge `Proof`.
 /// As defined in Appendix B. Maurer Protocols in the paper.
 pub trait Language<
-    // Number of times maurer proof parallel repetitions needed to achieve sufficiently small knowledge soundness error
+    // Number of times maurer proof parallel repetitions needed
+    // to achieve sufficiently small knowledge soundness error.
     const REPETITIONS: usize,
 >: Clone + PartialEq + Eq + Debug {
     /// An element of the witness space $(\HH_\pp, +)$
