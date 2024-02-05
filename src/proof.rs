@@ -3,7 +3,7 @@
 
 use std::{array, marker::PhantomData};
 
-use crypto_bigint::{ConcatMixed, rand_core::CryptoRngCore, U128};
+use crypto_bigint::{rand_core::CryptoRngCore};
 use group::{ComputationalSecuritySizedNumber, GroupElement, helpers::FlatMapResults, Samplable};
 use merlin::Transcript;
 use proof::TranscriptProtocol;
@@ -17,13 +17,6 @@ pub const SOUND_PROOFS_REPETITIONS: usize = 1;
 
 /// The number of repetitions used for Maurer proofs that achieve 1/2 soundness error.
 pub const BIT_SOUNDNESS_PROOFS_REPETITIONS: usize = ComputationalSecuritySizedNumber::BITS;
-
-// For a batch size $N_B$, the challenge space should be $[0,N_B \cdot 2^{\kappa + 2})$.
-// Setting it to be 128-bit larger than the computational security parameter $\kappa$ allows us to
-// use any batch size (Rust does not allow a vector larger than $2^64$ elements,
-// as does 64-bit architectures in which the memory won't even be addressable.)
-pub(super) type ChallengeSizedNumber =
-<ComputationalSecuritySizedNumber as ConcatMixed<U128>>::MixedOutput;
 
 /// A Batched Maurer Zero-Knowledge Proof.
 /// Implements Appendix B. Maurer Protocols in the paper.
@@ -164,10 +157,10 @@ impl<
             &statement_masks_values,
         )?;
 
-        let challenges: [Vec<ChallengeSizedNumber>; REPETITIONS] =
+        let challenges: [Vec<ComputationalSecuritySizedNumber>; REPETITIONS] =
             Self::compute_challenges(batch_size, &mut transcript);
 
-        let challenge_bit_size = Language::challenge_bits(batch_size)?;
+        let challenge_bit_size = Language::challenge_bits()?;
         let responses = randomizers
             .into_iter()
             .zip(challenges)
@@ -179,7 +172,7 @@ impl<
                     .filter_map(|(witness, challenge)| {
                         if challenge_bit_size == 1 {
                             // A special case that needs special caring.
-                            if challenge == ChallengeSizedNumber::ZERO {
+                            if challenge == ComputationalSecuritySizedNumber::ZERO {
                                 None
                             } else {
                                 Some(witness)
@@ -223,7 +216,7 @@ impl<
             &self.statement_masks,
         )?;
 
-        let challenges: [Vec<ChallengeSizedNumber>; REPETITIONS] =
+        let challenges: [Vec<ComputationalSecuritySizedNumber>; REPETITIONS] =
             Self::compute_challenges(statements.len(), &mut transcript);
 
         self.verify_inner(challenges, language_public_parameters, statements)
@@ -235,7 +228,7 @@ impl<
         language_public_parameters: &Language::PublicParameters,
         statements: Vec<Language::StatementSpaceGroupElement>,
     ) -> Result<()> {
-        let challenges: [Vec<ChallengeSizedNumber>; REPETITIONS] =
+        let challenges: [Vec<ComputationalSecuritySizedNumber>; REPETITIONS] =
             Self::compute_challenges(statements.len(), transcript);
 
         self.verify_inner(challenges, language_public_parameters, statements)
@@ -243,12 +236,10 @@ impl<
 
     pub(crate) fn verify_inner(
         &self,
-        challenges: [Vec<ChallengeSizedNumber>; REPETITIONS],
+        challenges: [Vec<ComputationalSecuritySizedNumber>; REPETITIONS],
         language_public_parameters: &Language::PublicParameters,
         statements: Vec<Language::StatementSpaceGroupElement>,
     ) -> Result<()> {
-        let batch_size = statements.len();
-
         let responses = self
             .responses
             .map(|response| {
@@ -273,7 +264,7 @@ impl<
             .map(|response| Language::homomorphose(&response, language_public_parameters))
             .flat_map_results()?;
 
-        let challenge_bit_size = Language::challenge_bits(batch_size)?;
+        let challenge_bit_size = Language::challenge_bits()?;
         let reconstructed_response_statements: [Language::StatementSpaceGroupElement; REPETITIONS] =
             statement_masks
                 .into_iter()
@@ -286,7 +277,7 @@ impl<
                         .filter_map(|(statement, challenge)| {
                             if challenge_bit_size == 1 {
                                 // A special case that needs special caring
-                                if challenge == ChallengeSizedNumber::ZERO {
+                                if challenge == ComputationalSecuritySizedNumber::ZERO {
                                     None
                                 } else {
                                     Some(statement)
@@ -383,7 +374,7 @@ impl<
     pub(crate) fn compute_challenges(
         batch_size: usize,
         transcript: &mut Transcript,
-    ) -> [Vec<ChallengeSizedNumber>; REPETITIONS] {
+    ) -> [Vec<ComputationalSecuritySizedNumber>; REPETITIONS] {
         array::from_fn(|_| {
             (1..=batch_size)
                 .map(|_| {
