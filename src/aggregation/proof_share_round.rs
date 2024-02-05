@@ -3,14 +3,16 @@
 
 use std::collections::{HashMap, HashSet};
 
-use commitment::Commitment;
 use crypto_bigint::rand_core::CryptoRngCore;
 use group::{GroupElement, PartyID};
 use group::helpers::FlatMapResults;
 use proof::aggregation::ProofShareRoundParty;
 use serde::{Deserialize, Serialize};
 
+use commitment::Commitment;
+
 use crate::{Error, Result};
+use crate::aggregation::{process_incoming_messages, proof_aggregation_round};
 use crate::aggregation::decommitment_round::Decommitment;
 use crate::language::GroupsPublicParametersAccessors;
 use crate::language::WitnessSpaceValue;
@@ -22,7 +24,7 @@ pub struct ProofShare<const REPETITIONS: usize, Language: crate::Language<REPETI
     pub(super) [WitnessSpaceValue<REPETITIONS, Language>; REPETITIONS],
 );
 
-#[cfg_attr(feature = "benchmarking", derive(Clone))]
+#[cfg_attr(feature = "test_helpers", derive(Clone))]
 pub struct Party<
     // Number of times this proof should be repeated to achieve sufficient security
     const REPETITIONS: usize,
@@ -34,8 +36,7 @@ pub struct Party<
     ProtocolContext: Clone,
 > {
     pub(super) party_id: PartyID,
-    pub(super) threshold: PartyID,
-    pub(super) number_of_parties: PartyID,
+    pub(crate) provers: HashSet<PartyID>,
     pub(super) language_public_parameters: Language::PublicParameters,
     pub(super) protocol_context: ProtocolContext,
     pub(super) witnesses: Vec<Language::WitnessSpaceGroupElement>,
@@ -61,37 +62,14 @@ for Party<REPETITIONS, Language, ProtocolContext>
     fn generate_proof_share(
         self,
         decommitments: HashMap<PartyID, Self::Decommitment>,
-        rng: &mut impl CryptoRngCore,
+        _rng: &mut impl CryptoRngCore,
     ) -> Result<(Self::ProofShare, Self::ProofAggregationRoundParty)> {
-        let previous_round_party_ids: HashSet<PartyID> =
-            self.commitments.keys().map(|k| *k).collect();
-        // First remove parties that didn't participate in the previous round, as they shouldn't be
-        // allowed to join the session half-way, and we can self-heal this malicious behaviour
-        // without needing to stop the session and report
-        let decommitments: HashMap<PartyID, Decommitment<REPETITIONS, Language>> = decommitments
-            .into_iter()
-            .filter(|(party_id, _)| *party_id != self.party_id)
-            .filter(|(party_id, _)| previous_round_party_ids.contains(party_id))
-            .collect();
-        let current_round_party_ids: HashSet<PartyID> = decommitments.keys().map(|k| *k).collect();
-
-        let number_of_parties = decommitments.len() + 1;
-
-        let unresponsive_parties: Vec<PartyID> = current_round_party_ids
-            .symmetric_difference(&previous_round_party_ids)
-            .cloned()
-            .collect();
-
-        if !unresponsive_parties.is_empty() {
-            return Err(proof::aggregation::Error::UnresponsiveParties(unresponsive_parties))?;
-        }
+        let decommitments = process_incoming_messages(self.party_id, self.provers.clone(), decommitments)?;
 
         let reconstructed_commitments: Result<HashMap<PartyID, Commitment>> = decommitments
             .iter()
             .map(|(party_id, decommitment)| {
                 Proof::<REPETITIONS, Language, ProtocolContext>::setup_transcript(
-                    // TODO: insert the party id of the other party somehow, and maybe other
-                    // things.
                     &self.protocol_context,
                     &self.language_public_parameters,
                     decommitment.statements.clone(),
@@ -101,6 +79,8 @@ for Party<REPETITIONS, Language, ProtocolContext>
                         (
                             *party_id,
                             Commitment::commit_transcript(
+                                *party_id,
+                                "maurer proof aggregation - commitment round commitment".to_string(),
                                 &mut transcript,
                                 &decommitment.commitment_randomness,
                             ),
@@ -111,21 +91,22 @@ for Party<REPETITIONS, Language, ProtocolContext>
 
         let reconstructed_commitments: HashMap<PartyID, Commitment> = reconstructed_commitments?;
 
-        let miscommitting_parties: Vec<PartyID> = current_round_party_ids
-            .into_iter()
+        let mut miscommitting_parties: Vec<PartyID> = decommitments.keys().cloned()
             .filter(|party_id| reconstructed_commitments[party_id] != self.commitments[party_id])
             .collect();
+        miscommitting_parties.sort();
 
         if !miscommitting_parties.is_empty() {
             return Err(proof::aggregation::Error::WrongDecommitment(miscommitting_parties))?;
         }
 
-        let statement_masks: group::Result<
-            Vec<[Language::StatementSpaceGroupElement; REPETITIONS]>,
+        let statement_masks: HashMap<
+            PartyID,
+            group::Result<_>,
         > = decommitments
-            .values()
-            .map(|decommitment| {
-                decommitment
+            .iter()
+            .map(|(party_id, decommitment)| {
+                (*party_id, decommitment
                     .statement_masks
                     .map(|statement_mask| {
                         Language::StatementSpaceGroupElement::new(
@@ -135,8 +116,24 @@ for Party<REPETITIONS, Language, ProtocolContext>
                                 .statement_space_public_parameters(),
                         )
                     })
-                    .flat_map_results()
+                    .flat_map_results())
             })
+            .collect();
+
+        let mut parties_sending_invalid_statement_masks: Vec<PartyID> = statement_masks
+            .iter()
+            .filter(|(_, statement_masks)| statement_masks.is_err())
+            .map(|(party_id, _)| *party_id)
+            .collect();
+        parties_sending_invalid_statement_masks.sort();
+
+        if !parties_sending_invalid_statement_masks.is_empty() {
+            return Err(proof::aggregation::Error::InvalidDecommitment(
+                parties_sending_invalid_statement_masks,
+            ))?;
+        }
+
+        let statement_masks: HashMap<_, _> = statement_masks.into_iter().map(|(party_id, statement_masks)| (party_id, statement_masks.unwrap()))
             .collect();
 
         let number_of_statements = self.statements.len();
@@ -153,7 +150,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
             ))?;
         }
 
-        let aggregated_statement_masks = statement_masks?.into_iter().fold(
+        let aggregated_statement_masks = statement_masks.into_values().fold(
             Ok(self.statement_masks),
             |aggregated_statement_masks, statement_masks| {
                 aggregated_statement_masks.and_then(|aggregated_statement_masks| {
@@ -170,11 +167,15 @@ for Party<REPETITIONS, Language, ProtocolContext>
             },
         )?;
 
-        let statements_vector: group::Result<Vec<Vec<Language::StatementSpaceGroupElement>>> =
+        let statements: HashMap<
+            PartyID,
+            group::Result<Vec<_>>,
+        > =
             decommitments
-                .into_values()
-                .map(|decommitment| {
-                    decommitment
+                .clone()
+                .into_iter()
+                .map(|(party_id, decommitment)| {
+                    (party_id, decommitment
                         .statements
                         .into_iter()
                         .map(|statement_value| {
@@ -185,17 +186,31 @@ for Party<REPETITIONS, Language, ProtocolContext>
                                     .statement_space_public_parameters(),
                             )
                         })
-                        .collect()
+                        .collect())
                 })
                 .collect();
 
-        let statements_vector = statements_vector?;
+        let mut parties_sending_invalid_statements: Vec<PartyID> = statements
+            .iter()
+            .filter(|(_, statement)| statement.is_err())
+            .map(|(party_id, _)| *party_id)
+            .collect();
+        parties_sending_invalid_statements.sort();
+
+        if !parties_sending_invalid_statements.is_empty() {
+            return Err(proof::aggregation::Error::InvalidDecommitment(
+                parties_sending_invalid_statements,
+            ))?;
+        }
+
+        let statements: HashMap<_, _> = statements.into_iter().map(|(party_id, statement)| (party_id, statement.unwrap()))
+            .collect();
 
         let aggregated_statements: Vec<Language::StatementSpaceGroupElement> = (0
             ..number_of_statements)
             .map(|i| {
-                statements_vector
-                    .iter()
+                statements
+                    .values()
                     .map(|statements| statements[i].clone())
                     .fold(
                         self.statements[i].clone(),
@@ -227,14 +242,20 @@ for Party<REPETITIONS, Language, ProtocolContext>
             })
             .flat_map_results()?;
 
+        let statement_masks = decommitments
+            .into_iter()
+            .map(|(party_id, decommitment)|
+                (party_id, decommitment
+                    .statement_masks)).collect();
+
         let proof_aggregation_round_party =
             proof_aggregation_round::Party::<REPETITIONS, Language, ProtocolContext> {
                 party_id: self.party_id,
-                threshold: self.threshold,
-                number_of_parties: self.number_of_parties,
+                provers: self.provers,
                 language_public_parameters: self.language_public_parameters,
                 protocol_context: self.protocol_context,
-                previous_round_party_ids,
+                statements,
+                statement_masks,
                 aggregated_statements,
                 aggregated_statement_masks,
                 responses,
