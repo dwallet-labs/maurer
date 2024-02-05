@@ -4,7 +4,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crypto_bigint::rand_core::CryptoRngCore;
-use group::{ComputationalSecuritySizedNumber, GroupElement, PartyID};
+use group::{ComputationalSecuritySizedNumber, PartyID};
 use proof::aggregation::DecommitmentRoundParty;
 use serde::{Deserialize, Serialize};
 
