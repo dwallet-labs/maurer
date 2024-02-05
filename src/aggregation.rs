@@ -162,6 +162,7 @@ pub(super) mod test_helpers {
         language_public_parameters: &Lang::PublicParameters,
         extra_description: Option<String>,
         as_millis: bool,
+        batch_sizes: Option<Vec<usize>>,
     ) {
         let timestamp = if as_millis { "ms" } else { "µs" };
         println!(
@@ -169,7 +170,7 @@ pub(super) mod test_helpers {
         );
 
         for number_of_parties in [10, 100, 1000] {
-            for batch_size in [1, 10, 100, 1000, 10000] {
+            for batch_size in batch_sizes.clone().unwrap_or(vec![1, 10, 100, 1000, 10000]).into_iter() {
                 let commitment_round_parties = setup::<REPETITIONS, Lang>(language_public_parameters, number_of_parties, batch_size);
 
                 let (commitment_round_time,

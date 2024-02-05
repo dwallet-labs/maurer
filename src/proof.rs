@@ -790,6 +790,7 @@ pub(super) mod test_helpers {
         language_public_parameters: &Language::PublicParameters,
         extra_description: Option<String>,
         as_millis: bool,
+        batch_sizes: Option<Vec<usize>>,
     ) {
         let measurement = WallTime;
 
@@ -798,7 +799,7 @@ pub(super) mod test_helpers {
             "\nLanguage Name, Repetitions, Extra Description, Batch Size, Batch Normalize Time (µs), Setup Transcript Time (µs), Prove Time ({timestamp}), Verification Time ({timestamp})",
         );
 
-        for batch_size in [1, 10, 100, 1000, 10000] {
+        for batch_size in batch_sizes.unwrap_or(vec![1, 10, 100, 1000, 10000]).into_iter() {
             let witnesses =
                 sample_witnesses::<REPETITIONS, Language>(language_public_parameters, batch_size, &mut OsRng);
 
