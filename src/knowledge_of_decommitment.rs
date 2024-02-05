@@ -405,11 +405,11 @@ pub(crate) mod benches {
     use criterion::Criterion;
 
     pub(crate) fn benchmark(_c: &mut Criterion) {
-        let language_public_parameters =
+        let sound_language_public_parameters =
             language_public_parameters::<SOUND_PROOFS_REPETITIONS, 1>();
 
         test_helpers::benchmark_proof::<SOUND_PROOFS_REPETITIONS, Lang<SOUND_PROOFS_REPETITIONS, 1>>(
-            &language_public_parameters,
+            &sound_language_public_parameters,
             None,
             false,
             None,
@@ -417,7 +417,7 @@ pub(crate) mod benches {
         test_helpers::benchmark_aggregation::<
             SOUND_PROOFS_REPETITIONS,
             Lang<SOUND_PROOFS_REPETITIONS, 1>,
-        >(&language_public_parameters, None, false, None);
+        >(&sound_language_public_parameters, None, false, None);
 
         let language_public_parameters1 =
             language_public_parameters::<BIT_SOUNDNESS_PROOFS_REPETITIONS, 1>();
