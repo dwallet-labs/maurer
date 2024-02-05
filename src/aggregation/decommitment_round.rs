@@ -3,11 +3,12 @@
 
 use std::collections::{HashMap, HashSet};
 
-use commitment::Commitment;
 use crypto_bigint::rand_core::CryptoRngCore;
 use group::{ComputationalSecuritySizedNumber, GroupElement, PartyID};
 use proof::aggregation::DecommitmentRoundParty;
 use serde::{Deserialize, Serialize};
+
+use commitment::Commitment;
 
 use crate::{Error, Result};
 use crate::aggregation::{process_incoming_messages, proof_share_round};
@@ -21,7 +22,7 @@ pub struct Decommitment<const REPETITIONS: usize, Language: language::Language<R
     pub(super) commitment_randomness: ComputationalSecuritySizedNumber,
 }
 
-#[cfg_attr(feature = "benchmarking", derive(Clone))]
+#[cfg_attr(feature = "test_helpers", derive(Clone))]
 pub struct Party<
     // Number of times this proof should be repeated to achieve sufficient security
     const REPETITIONS: usize,
@@ -40,8 +41,7 @@ pub struct Party<
     pub(super) statements: Vec<Language::StatementSpaceGroupElement>,
     pub(super) randomizers: [Language::WitnessSpaceGroupElement; REPETITIONS],
     pub(super) statement_masks: [Language::StatementSpaceGroupElement; REPETITIONS],
-    pub(super) statement_masks_values: [group::Value<Language::StatementSpaceGroupElement>; REPETITIONS],
-    pub(super) commitment_randomness: ComputationalSecuritySizedNumber,
+    pub(super) decommitment: Decommitment::<REPETITIONS, Language>,
 }
 
 
@@ -62,18 +62,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
         commitments: HashMap<PartyID, Self::Commitment>,
         _rng: &mut impl CryptoRngCore,
     ) -> Result<(Self::Decommitment, Self::ProofShareRoundParty)> {
-        let commitments = process_incoming_messages(self.party_id, &self.provers, commitments)?;
-
-        let decommitment = Decommitment::<REPETITIONS, Language> {
-            statements: self
-                .statements
-                .iter()
-                .map(|statement| statement.value())
-                .collect(),
-            statement_masks: self
-                .statement_masks_values,
-            commitment_randomness: self.commitment_randomness,
-        };
+        let commitments = process_incoming_messages(self.party_id, self.provers.clone(), commitments)?;
 
         let proof_share_round_party =
             proof_share_round::Party::<REPETITIONS, Language, ProtocolContext> {
@@ -88,6 +77,6 @@ for Party<REPETITIONS, Language, ProtocolContext>
                 commitments,
             };
 
-        Ok((decommitment, proof_share_round_party))
+        Ok((self.decommitment, proof_share_round_party))
     }
 }
