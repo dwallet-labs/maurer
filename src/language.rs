@@ -6,6 +6,7 @@ use group::{ComputationalSecuritySizedNumber, GroupElement, Samplable};
 use serde::{Deserialize, Serialize};
 
 use crate::proof::{BIT_SOUNDNESS_PROOFS_REPETITIONS, SOUND_PROOFS_REPETITIONS};
+use crate::Result;
 
 /// A Maurer Zero-Knowledge Proof Language.
 ///
@@ -42,7 +43,7 @@ pub trait Language<
     const NAME: &'static str;
 
     /// The number of bits to use for the challenge
-    fn challenge_bits(batch_size: usize) -> crate::Result<usize> {
+    fn challenge_bits(batch_size: usize) -> Result<usize> {
         if REPETITIONS == SOUND_PROOFS_REPETITIONS {
             // When batching $N_B$ statements, the challenge space $\bE$ is adjusted to be $[0,\BatchSize
             // \cdot 2^{\kappa+2})$.
@@ -67,7 +68,7 @@ pub trait Language<
     fn homomorphose(
         witness: &Self::WitnessSpaceGroupElement,
         language_public_parameters: &Self::PublicParameters,
-    ) -> crate::Result<Self::StatementSpaceGroupElement>;
+    ) -> Result<Self::StatementSpaceGroupElement>;
 }
 
 pub type PublicParameters<const REPETITIONS: usize, L> =
@@ -120,6 +121,7 @@ GroupsPublicParametersAccessors<
 > for T
 {}
 
+#[cfg(feature = "test_helpers")]
 pub(super) mod test_helpers {
     use core::iter;
 
@@ -127,7 +129,7 @@ pub(super) mod test_helpers {
 
     use super::*;
 
-    pub fn generate_witnesses<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
+    pub fn sample_witnesses<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
         language_public_parameters: &Lang::PublicParameters,
         batch_size: usize,
         rng: &mut impl CryptoRngCore,
@@ -143,27 +145,11 @@ pub(super) mod test_helpers {
             .collect()
     }
 
-    pub fn generate_witnesses_for_aggregation<
-        const REPETITIONS: usize,
-        Lang: Language<REPETITIONS>,
-    >(
-        language_public_parameters: &Lang::PublicParameters,
-        number_of_parties: usize,
-        batch_size: usize,
-        rng: &mut impl CryptoRngCore,
-    ) -> Vec<Vec<Lang::WitnessSpaceGroupElement>> {
-        iter::repeat_with(|| {
-            generate_witnesses::<REPETITIONS, Lang>(language_public_parameters, batch_size, rng)
-        })
-            .take(number_of_parties)
-            .collect()
-    }
-
-    pub fn generate_witness<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
+    pub fn sample_witness<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
         language_public_parameters: &Lang::PublicParameters,
         rng: &mut impl CryptoRngCore,
     ) -> Lang::WitnessSpaceGroupElement {
-        let witnesses = generate_witnesses::<REPETITIONS, Lang>(language_public_parameters, 1, rng);
+        let witnesses = sample_witnesses::<REPETITIONS, Lang>(language_public_parameters, 1, rng);
 
         witnesses.first().unwrap().clone()
     }

@@ -6,6 +6,7 @@ pub use language::Language;
 pub mod language;
 mod proof;
 
+#[cfg(feature = "test_helpers")]
 pub mod test_helpers {
     pub use crate::language::test_helpers::*;
 }
@@ -21,6 +22,8 @@ pub enum Error {
     UnsupportedRepetitions,
     #[error("invalid parameters")]
     InvalidParameters,
+    #[error("serialization/deserialization error")]
+    Serialization(#[from] serde_json::Error),
     #[error("an internal error that should never have happened and signifies a bug")]
     InternalError,
 }
