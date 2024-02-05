@@ -165,7 +165,7 @@ pub(super) mod test_helpers {
     ) {
         let timestamp = if as_millis { "ms" } else { "µs" };
         println!(
-            "Language Name, Repetitions, Extra Description, Number of Parties, Batch Size, Commitment Round Time ({timestamp}), Decommitment Round Time ({timestamp}), Proof Share Round Time ({timestamp}), Proof Aggregation Round Time ({timestamp}), Protocol Time ({timestamp})",
+            "\nLanguage Name, Repetitions, Extra Description, Number of Parties, Batch Size, Commitment Round Time ({timestamp}), Decommitment Round Time ({timestamp}), Proof Share Round Time ({timestamp}), Proof Aggregation Round Time ({timestamp}), Protocol Time ({timestamp})",
         );
 
         for number_of_parties in [10, 100, 1000] {

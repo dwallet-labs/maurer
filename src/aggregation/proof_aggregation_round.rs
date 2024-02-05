@@ -98,7 +98,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
                 .collect();
 
         let responses =
-            proof_shares
+            Language::WitnessSpaceGroupElement::batch_normalize_const_generic(proof_shares
                 .values()
                 .fold(Ok(self.responses), |aggregated_responses, proof_share| {
                     aggregated_responses.and_then(|aggregated_responses| {
@@ -110,9 +110,9 @@ for Party<REPETITIONS, Language, ProtocolContext>
                             .try_into()
                             .map_err(|_| Error::InternalError)
                     })
-                })?.map(|response| response.value());
+                })?);
 
-        let aggregated_statement_masks = self.aggregated_statement_masks.map(|statement_mask| statement_mask.value());
+        let aggregated_statement_masks = Language::StatementSpaceGroupElement::batch_normalize_const_generic(self.aggregated_statement_masks);
         let aggregated_proof = Proof::new(aggregated_statement_masks, responses);
         if aggregated_proof
             .verify(
@@ -129,9 +129,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
             let mut transcript = Proof::<REPETITIONS, Language, ProtocolContext>::setup_transcript(
                 &self.protocol_context,
                 &self.language_public_parameters,
-                self.aggregated_statements.iter()
-                    .map(|statement| statement.value())
-                    .collect(),
+                Language::StatementSpaceGroupElement::batch_normalize(self.aggregated_statements.clone()),
                 &aggregated_statement_masks,
             )?;
 
@@ -146,7 +144,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
                         Proof::<REPETITIONS, Language, ProtocolContext>::new(
                             // Same parties participating in all rounds, safe to `.unwrap()`.
                             *self.statement_masks.get(&party_id).unwrap(),
-                            proof_share.map(|share| share.value()),
+                            Language::WitnessSpaceGroupElement::batch_normalize_const_generic(proof_share),
                         ),
                     )
                 }).collect();

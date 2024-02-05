@@ -154,7 +154,7 @@ version = "0.1.0"
 source = "git+https://github.com/dwallet-labs/commitment.git?branch=commitment#fe063b9dbfc90158a49b954f3024dc8729acccd4"
 dependencies = [
  "crypto-bigint",
- "group 0.1.0",
+ "group 0.1.0 (git+https://github.com/dwallet-labs/group.git)",
  "merlin",
  "serde",
 ]
@@ -327,6 +327,7 @@ dependencies = [
  "rfc6979",
  "serdect",
  "signature",
+ "spki",
 ]
 
 [[package]]
@@ -501,6 +502,22 @@ checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
 [[package]]
 name = "group"
 version = "0.1.0"
+source = "git+https://github.com/dwallet-labs/group.git?branch=batch_normalize#ef07c927c9b98a64a9a5dea0bf7471926359a4f2"
+dependencies = [
+ "crypto-bigint",
+ "curve25519-dalek-ng",
+ "k256",
+ "serde",
+ "sha3 0.10.8",
+ "sha3 0.9.1",
+ "subtle",
+ "subtle-ng",
+ "thiserror",
+]
+
+[[package]]
+name = "group"
+version = "0.1.0"
 source = "git+https://github.com/dwallet-labs/group.git#bdfa95a3fc8633d01252b87c791ff14a51e73ec6"
 dependencies = [
  "crypto-bigint",
@@ -633,7 +650,7 @@ dependencies = [
  "commitment",
  "criterion",
  "crypto-bigint",
- "group 0.1.0",
+ "group 0.1.0 (git+https://github.com/dwallet-labs/group.git?branch=batch_normalize)",
  "merlin",
  "proof",
  "rand_core",
@@ -766,11 +783,11 @@ dependencies = [
 [[package]]
 name = "proof"
 version = "0.1.0"
-source = "git+https://github.com/dwallet-labs/proof.git?branch=aggregation-tests#fa885ac15f49dc5969043b83da97c9ba5bbd471a"
+source = "git+https://github.com/dwallet-labs/proof.git?rev=3a6411bcd76202aca2fa496ce2eb3351595e8282#3a6411bcd76202aca2fa496ce2eb3351595e8282"
 dependencies = [
  "criterion",
  "crypto-bigint",
- "group 0.1.0",
+ "group 0.1.0 (git+https://github.com/dwallet-labs/group.git)",
  "merlin",
  "rand",
  "rand_core",

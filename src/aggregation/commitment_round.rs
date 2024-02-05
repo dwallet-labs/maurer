@@ -1,8 +1,6 @@
 // Author: dWallet Labs, Ltd.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
-use std::collections::HashSet;
-
 use commitment::Commitment;
 use crypto_bigint::rand_core::CryptoRngCore;
 use crypto_bigint::Random;
@@ -10,10 +8,11 @@ use group::{ComputationalSecuritySizedNumber, GroupElement, PartyID};
 use proof::aggregation;
 use proof::aggregation::CommitmentRoundParty;
 use serde::Serialize;
-
+use std::collections::HashSet;
 use crate::{language, Proof};
 use crate::{Error, Result};
 use crate::aggregation::decommitment_round;
+use crate::aggregation::decommitment_round::Decommitment;
 
 #[cfg_attr(feature = "test_helpers", derive(Clone))]
 pub struct Party<
@@ -65,22 +64,26 @@ for Party<REPETITIONS, Language, ProtocolContext>
 
         let commitment_randomness = ComputationalSecuritySizedNumber::random(rng);
 
-        let statement_masks_values = self
-            .statement_masks
-            .clone()
-            .map(|statement_mask| statement_mask.value());
+        let statement_masks_values =
+            Language::StatementSpaceGroupElement::batch_normalize_const_generic(self
+                .statement_masks.clone());
+
+        let statements_values = Language::StatementSpaceGroupElement::batch_normalize(statements.clone());
 
         let mut transcript = Proof::<REPETITIONS, Language, ProtocolContext>::setup_transcript(
             &self.protocol_context,
             &self.language_public_parameters,
-            statements
-                .iter()
-                .map(|statement| statement.value())
-                .collect(),
+            statements_values.clone(),
             &statement_masks_values,
         )?;
 
         let commitment = Commitment::commit_transcript(self.party_id, "maurer proof aggregation - commitment round commitment".to_string(), &mut transcript, &commitment_randomness);
+
+        let decommitment = Decommitment::<REPETITIONS, Language> {
+            statements: statements_values,
+            statement_masks: statement_masks_values,
+            commitment_randomness,
+        };
 
         let decommitment_round_party =
             decommitment_round::Party::<REPETITIONS, Language, ProtocolContext> {
@@ -92,8 +95,7 @@ for Party<REPETITIONS, Language, ProtocolContext>
                 statements,
                 randomizers: self.randomizers,
                 statement_masks: self.statement_masks,
-                statement_masks_values,
-                commitment_randomness,
+                decommitment,
             };
 
         Ok((commitment, decommitment_round_party))
