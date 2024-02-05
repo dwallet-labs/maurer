@@ -800,14 +800,14 @@ pub(super) mod test_helpers {
 
         let timestamp = if as_millis { "ms" } else { "µs" };
         println!(
-            "Language Name, Repetitions, Extra Description, Batch Size, Batch Normalize Time ({timestamp}), Setup Transcript Time ({timestamp}), Prove Time ({timestamp}), Verification Time ({timestamp})",
+            "\nLanguage Name, Repetitions, Extra Description, Batch Size, Batch Normalize Time (µs), Setup Transcript Time (µs), Prove Time ({timestamp}), Verification Time ({timestamp})",
         );
 
         for batch_size in [1, 10, 100, 1000, 10000] {
             let witnesses =
                 sample_witnesses::<REPETITIONS, Language>(language_public_parameters, batch_size, &mut OsRng);
 
-            let statements: std::result::Result<Vec<_>> = witnesses
+            let statements: Result<Vec<_>> = witnesses
                 .iter()
                 .map(|witness| Language::homomorphose(witness, language_public_parameters))
                 .collect();
@@ -857,8 +857,8 @@ pub(super) mod test_helpers {
                 Language::NAME,
                 REPETITIONS,
                 extra_description.clone().unwrap_or("".to_string()),
-                if as_millis { normalize_time.as_millis() } else { normalize_time.as_micros() },
-                if as_millis { setup_transcript_time.as_millis() } else { setup_transcript_time.as_micros() },
+                normalize_time.as_micros(),
+                setup_transcript_time.as_micros(),
                 if as_millis { prove_time.as_millis() } else { prove_time.as_micros() },
                 if as_millis { verify_time.as_millis() } else { verify_time.as_micros() },
             );
