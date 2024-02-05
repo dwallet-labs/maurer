@@ -8,7 +8,7 @@ use group::{ComputationalSecuritySizedNumber, GroupElement, PartyID};
 use proof::aggregation;
 use proof::aggregation::CommitmentRoundParty;
 use serde::Serialize;
-
+use std::collections::HashSet;
 use crate::{language, Proof};
 use crate::{Error, Result};
 use crate::aggregation::decommitment_round;
