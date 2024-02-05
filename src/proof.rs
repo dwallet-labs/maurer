@@ -400,10 +400,13 @@ impl<
     }
 }
 
+#[cfg(feature = "test_helpers")]
 pub(super) mod test_helpers {
     use std::marker::PhantomData;
+    use criterion::measurement::{Measurement, WallTime};
+    use rand_core::OsRng;
 
-    use crate::test_helpers::{generate_witness, generate_witnesses};
+    use crate::test_helpers::{sample_witness, sample_witnesses};
 
     use super::*;
 
@@ -430,7 +433,7 @@ pub(super) mod test_helpers {
         rng: &mut impl CryptoRngCore,
     ) {
         let witnesses =
-            generate_witnesses::<REPETITIONS, Language>(language_public_parameters, batch_size, rng);
+            sample_witnesses::<REPETITIONS, Language>(language_public_parameters, batch_size, rng);
 
         valid_proof_verifies_internal::<REPETITIONS, Language>(
             language_public_parameters,
@@ -472,7 +475,7 @@ pub(super) mod test_helpers {
         rng: &mut impl CryptoRngCore,
     ) {
         let witnesses =
-            generate_witnesses::<REPETITIONS, Language>(language_public_parameters, batch_size, rng);
+            sample_witnesses::<REPETITIONS, Language>(language_public_parameters, batch_size, rng);
 
         let (valid_proof, statements) = generate_valid_proof::<REPETITIONS, Language>(
             language_public_parameters,
@@ -481,7 +484,7 @@ pub(super) mod test_helpers {
         );
 
         let wrong_witness =
-            generate_witness::<REPETITIONS, Language>(language_public_parameters, rng);
+            sample_witness::<REPETITIONS, Language>(language_public_parameters, rng);
 
         let wrong_statement =
             Language::homomorphose(&wrong_witness, language_public_parameters).unwrap();
@@ -608,7 +611,7 @@ pub(super) mod test_helpers {
         rng: &mut impl CryptoRngCore,
     ) {
         let witnesses =
-            generate_witnesses::<REPETITIONS, Language>(&verifier_language_public_parameters, batch_size, rng);
+            sample_witnesses::<REPETITIONS, Language>(&verifier_language_public_parameters, batch_size, rng);
 
         let (proof, statements) = generate_valid_proof::<REPETITIONS, Language>(
             &prover_language_public_parameters,
@@ -689,7 +692,7 @@ pub(super) mod test_helpers {
         rng: &mut impl CryptoRngCore,
     ) {
         let witnesses =
-            generate_witnesses::<REPETITIONS, Language>(language_public_parameters, batch_size, rng);
+            sample_witnesses::<REPETITIONS, Language>(language_public_parameters, batch_size, rng);
         let protocol_context = "valid protocol context".to_string();
         let (proof, statements) =
             Proof::<REPETITIONS, Language, String>::prove(
@@ -706,7 +709,7 @@ pub(super) mod test_helpers {
 
         assert!(
             proof
-                .verify_inner(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
+                .verify_with_transcript(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
                     true,
                     Some(protocol_context.clone()),
                     Some(language_public_parameters.clone()),
@@ -719,7 +722,7 @@ pub(super) mod test_helpers {
 
         assert!(matches!(
             proof
-                .verify_inner(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
+                .verify_with_transcript(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
                     false,
                     Some(protocol_context.clone()),
                     Some(language_public_parameters.clone()),
@@ -733,7 +736,7 @@ pub(super) mod test_helpers {
 
         assert!(matches!(
             proof
-                .verify_inner(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
+                .verify_with_transcript(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
                     true,
                     None,
                     Some(language_public_parameters.clone()),
@@ -747,7 +750,7 @@ pub(super) mod test_helpers {
 
         assert!(matches!(
             proof
-                .verify_inner(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
+                .verify_with_transcript(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
                     true,
                     Some(protocol_context.clone()),
                     None,
@@ -761,7 +764,7 @@ pub(super) mod test_helpers {
 
         assert!(matches!(
             proof
-                .verify_inner(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
+                .verify_with_transcript(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
                     true,
                     Some(protocol_context.clone()),
                     Some(language_public_parameters.clone()),
@@ -775,7 +778,7 @@ pub(super) mod test_helpers {
 
         assert!(matches!(
             proof
-                .verify_inner(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
+                .verify_with_transcript(&mut setup_partial_transcript::<REPETITIONS, Language, String>(
                     true,
                     Some(protocol_context.clone()),
                     Some(language_public_parameters.clone()),
@@ -786,5 +789,79 @@ pub(super) mod test_helpers {
             Error::Proof(proof::Error::ProofVerification),),
                 "proofs with incomplete transcripts (missing statement masks) should fail"
         );
+    }
+
+    pub fn benchmark_proof<const REPETITIONS: usize, Language: language::Language<REPETITIONS>>(
+        language_public_parameters: &Language::PublicParameters,
+        extra_description: Option<String>,
+        as_millis: bool,
+    ) {
+        let measurement = WallTime;
+
+        let timestamp = if as_millis { "ms" } else { "µs" };
+        println!(
+            "Language Name, Repetitions, Extra Description, Batch Size, Batch Normalize Time ({timestamp}), Setup Transcript Time ({timestamp}), Prove Time ({timestamp}), Verification Time ({timestamp})",
+        );
+
+        for batch_size in [1, 10, 100, 1000, 10000] {
+            let witnesses =
+                sample_witnesses::<REPETITIONS, Language>(language_public_parameters, batch_size, &mut OsRng);
+
+            let statements: std::result::Result<Vec<_>> = witnesses
+                .iter()
+                .map(|witness| Language::homomorphose(witness, language_public_parameters))
+                .collect();
+
+            let statements = statements.unwrap();
+
+            let now = measurement.start();
+            criterion::black_box(statements.iter().map(|x| x.value()).collect::<Vec<_>>());
+            let normalize_time = measurement.end(now);
+
+            let statements_values: Vec<_> = statements.iter().map(|x| x.value()).collect();
+
+            let now = measurement.start();
+            criterion::black_box(Proof::<REPETITIONS, Language, PhantomData<()>>::setup_transcript(
+                &PhantomData,
+                language_public_parameters,
+                statements_values.clone(),
+                // just a stub value as the value doesn't affect the benchmarking of
+                // this function
+                &[*statements_values.first().unwrap(); REPETITIONS],
+            ).unwrap());
+            let setup_transcript_time = measurement.end(now);
+
+            let now = measurement.start();
+            let proof = Proof::<REPETITIONS, Language, PhantomData<()>>::prove_with_statements(
+                &PhantomData,
+                language_public_parameters,
+                witnesses.clone(),
+                statements.clone(),
+                &mut OsRng,
+            )
+                .unwrap();
+            let prove_time = measurement.end(now);
+
+            let now = measurement.start();
+
+            proof.verify(
+                &PhantomData,
+                language_public_parameters,
+                statements.clone(),
+            ).unwrap();
+
+            let verify_time = measurement.end(now);
+
+            println!(
+                "{}, {}, {}, {batch_size}, {:?}, {:?}, {:?}, {:?}",
+                Language::NAME,
+                REPETITIONS,
+                extra_description.clone().unwrap_or("".to_string()),
+                if as_millis { normalize_time.as_millis() } else { normalize_time.as_micros() },
+                if as_millis { setup_transcript_time.as_millis() } else { setup_transcript_time.as_micros() },
+                if as_millis { prove_time.as_millis() } else { prove_time.as_micros() },
+                if as_millis { verify_time.as_millis() } else { verify_time.as_micros() },
+            );
+        }
     }
 }
