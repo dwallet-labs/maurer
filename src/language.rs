@@ -13,7 +13,8 @@ use crate::Result;
 /// Can be generically used to generate a batched Maurer zero-knowledge `Proof`.
 /// As defined in Appendix B. Maurer Protocols in the paper.
 pub trait Language<
-    // Number of times maurer proofs for this language should be repeated to achieve sufficient security
+    // Number of times maurer proof parallel repetitions needed
+    // to achieve sufficiently small knowledge soundness error.
     const REPETITIONS: usize,
 >: Clone + PartialEq + Eq + Debug {
     /// An element of the witness space $(\HH_\pp, +)$
@@ -24,7 +25,7 @@ pub trait Language<
 
     /// Public parameters for a language family $\pp \gets \Setup(1^\kappa)$.
     ///
-    /// Includes the public parameters of the witness, and statement groups.
+    /// Includes the public parameters of the witness and statement groups.
     ///
     /// Group public parameters are encoded separately in
     /// `WitnessSpaceGroupElement::PublicParameters` and
@@ -42,7 +43,7 @@ pub trait Language<
     /// transcript.
     const NAME: &'static str;
 
-    /// The number of bits to use for the challenge
+    /// The number of bits to use for the challenge (per repetition).
     fn challenge_bits() -> Result<usize> {
         if REPETITIONS == SOUND_PROOFS_REPETITIONS {
             Ok(ComputationalSecuritySizedNumber::BITS)
@@ -53,12 +54,13 @@ pub trait Language<
         }
     }
 
-    /// A group homomorphism $\phi:\HH\to\GG$  from $(\HH_\pp, +)$, the witness space,
-    /// to $(\GG_\pp,\cdot)$, the statement space space.
+    /// A group homomorphism $\phi:\HH\to\GG$ from $(\HH_\pp, +)$, the witness space,
+    /// to $(\GG_\pp,\cdot)$, the statement space.
     ///
-    /// The name of this method, `homomorphose` is inspired by the wonderful book "Gödel, Escher, Bach: An Eternal Golden Braid", by Douglas R. Hofstadter, and specifically,
-    /// Escher's painting "Metamorphosis II", in which the theme `METAMORPHOSE` is central:
-    /// https://www.digitalcommonwealth.org/search/commonwealth:ww72cb78j
+    /// The name of this method, `homomorphose` is inspired by the wonderful book
+    /// "Gödel, Escher, Bach: An Eternal Golden Braid", by Douglas R. Hofstadter, and specifically,
+    /// Escher's painting ["Metamorphosis II"](https://www.digitalcommonwealth.org/search/commonwealth:ww72cb78j), 
+    /// in which the theme `METAMORPHOSE` is central.
     fn homomorphose(
         witness: &Self::WitnessSpaceGroupElement,
         language_public_parameters: &Self::PublicParameters,
@@ -66,19 +68,25 @@ pub trait Language<
 }
 
 pub type PublicParameters<const REPETITIONS: usize, L> =
-<L as Language<REPETITIONS>>::PublicParameters;
+    <L as Language<REPETITIONS>>::PublicParameters;
+
 pub type WitnessSpaceGroupElement<const REPETITIONS: usize, L> =
-<L as Language<REPETITIONS>>::WitnessSpaceGroupElement;
+    <L as Language<REPETITIONS>>::WitnessSpaceGroupElement;
+
 pub type WitnessSpacePublicParameters<const REPETITIONS: usize, L> =
-group::PublicParameters<WitnessSpaceGroupElement<REPETITIONS, L>>;
+    group::PublicParameters<WitnessSpaceGroupElement<REPETITIONS, L>>;
+
 pub type WitnessSpaceValue<const REPETITIONS: usize, L> =
-group::Value<WitnessSpaceGroupElement<REPETITIONS, L>>;
+    group::Value<WitnessSpaceGroupElement<REPETITIONS, L>>;
+
 pub type StatementSpaceGroupElement<const REPETITIONS: usize, L> =
-<L as Language<REPETITIONS>>::StatementSpaceGroupElement;
+    <L as Language<REPETITIONS>>::StatementSpaceGroupElement;
+
 pub type StatementSpacePublicParameters<const REPETITIONS: usize, L> =
-group::PublicParameters<StatementSpaceGroupElement<REPETITIONS, L>>;
+    group::PublicParameters<StatementSpaceGroupElement<REPETITIONS, L>>;
+
 pub type StatementSpaceValue<const REPETITIONS: usize, L> =
-group::Value<StatementSpaceGroupElement<REPETITIONS, L>>;
+    group::Value<StatementSpaceGroupElement<REPETITIONS, L>>;
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct GroupsPublicParameters<WitnessSpacePublicParameters, StatementSpacePublicParameters> {
@@ -91,7 +99,7 @@ pub trait GroupsPublicParametersAccessors<
     WitnessSpacePublicParameters: 'a,
     StatementSpacePublicParameters: 'a,
 >:
-AsRef<GroupsPublicParameters<WitnessSpacePublicParameters, StatementSpacePublicParameters>>
+    AsRef<GroupsPublicParameters<WitnessSpacePublicParameters, StatementSpacePublicParameters>>
 {
     fn witness_space_public_parameters(&'a self) -> &'a WitnessSpacePublicParameters {
         &self.as_ref().witness_space_public_parameters
@@ -103,17 +111,18 @@ AsRef<GroupsPublicParameters<WitnessSpacePublicParameters, StatementSpacePublicP
 }
 
 impl<
-    'a,
-    WitnessSpacePublicParameters: 'a,
-    StatementSpacePublicParameters: 'a,
-    T: AsRef<GroupsPublicParameters<WitnessSpacePublicParameters, StatementSpacePublicParameters>>,
->
-GroupsPublicParametersAccessors<
-    'a,
-    WitnessSpacePublicParameters,
-    StatementSpacePublicParameters,
-> for T
-{}
+        'a,
+        WitnessSpacePublicParameters: 'a,
+        StatementSpacePublicParameters: 'a,
+        T: AsRef<GroupsPublicParameters<WitnessSpacePublicParameters, StatementSpacePublicParameters>>,
+    >
+    GroupsPublicParametersAccessors<
+        'a,
+        WitnessSpacePublicParameters,
+        StatementSpacePublicParameters,
+    > for T
+{
+}
 
 #[cfg(feature = "test_helpers")]
 pub(super) mod test_helpers {
@@ -133,10 +142,10 @@ pub(super) mod test_helpers {
                 language_public_parameters.witness_space_public_parameters(),
                 rng,
             )
-                .unwrap()
+            .unwrap()
         })
-            .take(batch_size)
-            .collect()
+        .take(batch_size)
+        .collect()
     }
 
     pub fn sample_witness<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
