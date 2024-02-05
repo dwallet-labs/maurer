@@ -348,6 +348,64 @@ mod tests {
             &mut OsRng,
         )
     }
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(1, 2)]
+    #[case(2, 1)]
+    #[case(2, 3)]
+    #[case(5, 2)]
+    fn aggregates(#[case] number_of_parties: usize, #[case] batch_size: usize) {
+        let language_public_parameters = language_public_parameters();
+
+        test_helpers::aggregates::<SOUND_PROOFS_REPETITIONS, Lang>(
+            &language_public_parameters,
+            number_of_parties,
+            batch_size,
+        );
+    }
+
+    #[rstest]
+    #[case(2, 1)]
+    #[case(3, 1)]
+    #[case(5, 2)]
+    fn unresponsive_parties_aborts_session_identifiably(#[case] number_of_parties: usize, #[case] batch_size: usize) {
+        let language_public_parameters = language_public_parameters();
+
+        test_helpers::unresponsive_parties_aborts_session_identifiably::<SOUND_PROOFS_REPETITIONS, Lang>(
+            &language_public_parameters,
+            number_of_parties,
+            batch_size,
+        );
+    }
+
+    #[rstest]
+    #[case(2, 1)]
+    #[case(3, 1)]
+    #[case(5, 2)]
+    fn wrong_decommitment_aborts_session_identifiably(#[case] number_of_parties: usize, #[case] batch_size: usize) {
+        let language_public_parameters = language_public_parameters();
+
+        test_helpers::wrong_decommitment_aborts_session_identifiably::<SOUND_PROOFS_REPETITIONS, Lang>(
+            &language_public_parameters,
+            number_of_parties,
+            batch_size,
+        );
+    }
+
+    #[rstest]
+    #[case(2, 1)]
+    #[case(3, 1)]
+    #[case(5, 2)]
+    fn failed_proof_share_verification_aborts_session_identifiably(#[case] number_of_parties: usize, #[case] batch_size: usize) {
+        let language_public_parameters = language_public_parameters();
+
+        test_helpers::failed_proof_share_verification_aborts_session_identifiably::<SOUND_PROOFS_REPETITIONS, Lang>(
+            &language_public_parameters,
+            number_of_parties,
+            batch_size,
+        );
+    }
 }
 
 #[cfg(feature = "benchmarking")]
@@ -355,13 +413,14 @@ pub mod benches {
     use criterion::Criterion;
 
     use crate::discrete_log_ratio_of_committed_values::tests::{Lang, language_public_parameters};
-    use crate::proof;
+    use crate::{proof, test_helpers};
 
     use super::*;
 
-    pub(crate) fn benchmark(c: &mut Criterion) {
+    pub(crate) fn benchmark(_c: &mut Criterion) {
         let language_public_parameters = language_public_parameters();
 
-        proof::benches::benchmark::<SOUND_PROOFS_REPETITIONS, Lang>(language_public_parameters.clone(), None, c);
+        test_helpers::benchmark_proof::<SOUND_PROOFS_REPETITIONS, Lang>(&language_public_parameters, None, false);
+        test_helpers::benchmark_aggregation::<SOUND_PROOFS_REPETITIONS, Lang>(&language_public_parameters, None, false);
     }
 }
