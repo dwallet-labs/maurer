@@ -62,7 +62,7 @@ pub trait Language<
     /// A group homomorphism $\phi:\HH\to\GG$  from $(\HH_\pp, +)$, the witness space,
     /// to $(\GG_\pp,\cdot)$, the statement space space.
     ///
-    /// The name of this method, `homomorphos` is inspired by the wonderful book "Gödel, Escher, Bach: An Eternal Golden Braid", by Douglas R. Hofstadter, and specifically,
+    /// The name of this method, `homomorphose` is inspired by the wonderful book "Gödel, Escher, Bach: An Eternal Golden Braid", by Douglas R. Hofstadter, and specifically,
     /// Escher's painting "Metamorphosis II", in which the theme `METAMORPHOSE` is central:
     /// https://www.digitalcommonwealth.org/search/commonwealth:ww72cb78j
     fn homomorphose(
@@ -121,6 +121,7 @@ GroupsPublicParametersAccessors<
 > for T
 {}
 
+#[cfg(feature = "test_helpers")]
 pub(super) mod test_helpers {
     use core::iter;
 
@@ -128,7 +129,7 @@ pub(super) mod test_helpers {
 
     use super::*;
 
-    pub fn generate_witnesses<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
+    pub fn sample_witnesses<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
         language_public_parameters: &Lang::PublicParameters,
         batch_size: usize,
         rng: &mut impl CryptoRngCore,
@@ -144,27 +145,11 @@ pub(super) mod test_helpers {
             .collect()
     }
 
-    pub fn generate_witnesses_for_aggregation<
-        const REPETITIONS: usize,
-        Lang: Language<REPETITIONS>,
-    >(
-        language_public_parameters: &Lang::PublicParameters,
-        number_of_parties: usize,
-        batch_size: usize,
-        rng: &mut impl CryptoRngCore,
-    ) -> Vec<Vec<Lang::WitnessSpaceGroupElement>> {
-        iter::repeat_with(|| {
-            generate_witnesses::<REPETITIONS, Lang>(language_public_parameters, batch_size, rng)
-        })
-            .take(number_of_parties)
-            .collect()
-    }
-
-    pub fn generate_witness<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
+    pub fn sample_witness<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
         language_public_parameters: &Lang::PublicParameters,
         rng: &mut impl CryptoRngCore,
     ) -> Lang::WitnessSpaceGroupElement {
-        let witnesses = generate_witnesses::<REPETITIONS, Lang>(language_public_parameters, 1, rng);
+        let witnesses = sample_witnesses::<REPETITIONS, Lang>(language_public_parameters, 1, rng);
 
         witnesses.first().unwrap().clone()
     }

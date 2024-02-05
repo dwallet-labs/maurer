@@ -51,7 +51,7 @@ impl<
         language_public_parameters: &Self::PublicParameters,
     ) -> Result<Self::StatementSpaceGroupElement> {
         let generator = GroupElement::new(
-            language_public_parameters.generator,
+            language_public_parameters.base,
             &language_public_parameters
                 .groups_public_parameters
                 .statement_space_public_parameters,
@@ -66,7 +66,7 @@ impl<
 pub struct PublicParameters<ScalarPublicParameters, GroupPublicParameters, GroupElementValue> {
     pub groups_public_parameters:
     GroupsPublicParameters<ScalarPublicParameters, GroupPublicParameters>,
-    pub generator: GroupElementValue,
+    pub base: GroupElementValue,
 }
 
 impl<ScalarPublicParameters, GroupPublicParameters, GroupElementValue>
@@ -82,21 +82,19 @@ PublicParameters<ScalarPublicParameters, GroupPublicParameters, GroupElementValu
     >(
         scalar_group_public_parameters: Scalar::PublicParameters,
         group_public_parameters: GroupElement::PublicParameters,
+        base: GroupElementValue,
     ) -> Self
         where
             Scalar: group::GroupElement<PublicParameters=ScalarPublicParameters>,
             GroupElement: group::GroupElement<Value=GroupElementValue, PublicParameters=GroupPublicParameters>
             + CyclicGroupElement,
     {
-        // TODO: maybe we don't want the generator all the time?
-        let generator =
-            GroupElement::generator_value_from_public_parameters(&group_public_parameters);
         Self {
             groups_public_parameters: GroupsPublicParameters {
                 witness_space_public_parameters: scalar_group_public_parameters,
                 statement_space_public_parameters: group_public_parameters,
             },
-            generator,
+            base,
         }
     }
 }
@@ -115,15 +113,13 @@ crate::Proof<SOUND_PROOFS_REPETITIONS, Language<Scalar, GroupElement>, ProtocolC
 
 #[cfg(any(test, feature = "benchmarking"))]
 mod tests {
-    use crypto_bigint::U256;
     use group::{GroupElement, secp256k1};
-    use rand_core::OsRng;
     use rstest::rstest;
-
+    use rand_core::OsRng;
     use crate::language;
     use crate::test_helpers;
-
     use super::*;
+    use crypto_bigint::U256;
 
     pub(crate) type Lang = Language<secp256k1::Scalar, secp256k1::GroupElement>;
 
@@ -135,7 +131,8 @@ mod tests {
 
         PublicParameters::new::<secp256k1::Scalar, secp256k1::GroupElement>(
             secp256k1_scalar_public_parameters,
-            secp256k1_group_public_parameters,
+            secp256k1_group_public_parameters.clone(),
+            secp256k1_group_public_parameters.generator,
         )
     }
 
@@ -182,7 +179,7 @@ mod tests {
 
         let secp256k1_group_public_parameters =
             secp256k1::group_element::PublicParameters::default();
-        prover_public_parameters.generator = secp256k1::GroupElement::new(prover_public_parameters.generator, &secp256k1_group_public_parameters).unwrap().neutral().value();
+        prover_public_parameters.base = (secp256k1::GroupElement::new(prover_public_parameters.base, &secp256k1_group_public_parameters).unwrap().generator() + secp256k1::GroupElement::new(prover_public_parameters.base, &secp256k1_group_public_parameters).unwrap().generator()).value();
 
         test_helpers::proof_over_invalid_public_parameters_fails_verification::<SOUND_PROOFS_REPETITIONS, Lang>(
             &prover_public_parameters,
@@ -215,19 +212,77 @@ mod tests {
             &mut OsRng,
         )
     }
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(1, 2)]
+    #[case(2, 1)]
+    #[case(2, 3)]
+    #[case(5, 2)]
+    fn aggregates(#[case] number_of_parties: usize, #[case] batch_size: usize) {
+        let language_public_parameters = language_public_parameters();
+
+        test_helpers::aggregates::<SOUND_PROOFS_REPETITIONS, Lang>(
+            &language_public_parameters,
+            number_of_parties,
+            batch_size,
+        );
+    }
+
+    #[rstest]
+    #[case(2, 1)]
+    #[case(3, 1)]
+    #[case(5, 2)]
+    fn unresponsive_parties_aborts_session_identifiably(#[case] number_of_parties: usize, #[case] batch_size: usize) {
+        let language_public_parameters = language_public_parameters();
+
+        test_helpers::unresponsive_parties_aborts_session_identifiably::<SOUND_PROOFS_REPETITIONS, Lang>(
+            &language_public_parameters,
+            number_of_parties,
+            batch_size,
+        );
+    }
+
+    #[rstest]
+    #[case(2, 1)]
+    #[case(3, 1)]
+    #[case(5, 2)]
+    fn wrong_decommitment_aborts_session_identifiably(#[case] number_of_parties: usize, #[case] batch_size: usize) {
+        let language_public_parameters = language_public_parameters();
+
+        test_helpers::wrong_decommitment_aborts_session_identifiably::<SOUND_PROOFS_REPETITIONS, Lang>(
+            &language_public_parameters,
+            number_of_parties,
+            batch_size,
+        );
+    }
+
+    #[rstest]
+    #[case(2, 1)]
+    #[case(3, 1)]
+    #[case(5, 2)]
+    fn failed_proof_share_verification_aborts_session_identifiably(#[case] number_of_parties: usize, #[case] batch_size: usize) {
+        let language_public_parameters = language_public_parameters();
+
+        test_helpers::failed_proof_share_verification_aborts_session_identifiably::<SOUND_PROOFS_REPETITIONS, Lang>(
+            &language_public_parameters,
+            number_of_parties,
+            batch_size,
+        );
+    }
 }
 
 #[cfg(feature = "benchmarking")]
-pub mod benches {
+pub(crate) mod benches {
     use criterion::Criterion;
-
+    use crate::test_helpers;
     use crate::knowledge_of_discrete_log::tests::{Lang, language_public_parameters};
-    use crate::proof;
     use crate::SOUND_PROOFS_REPETITIONS;
 
-    pub(crate) fn benchmark(c: &mut Criterion) {
+    pub(crate) fn benchmark(_c: &mut Criterion) {
         let language_public_parameters = language_public_parameters();
 
-        proof::benches::benchmark::<SOUND_PROOFS_REPETITIONS, Lang>(language_public_parameters.clone(), None, c);
+        test_helpers::benchmark_proof::<SOUND_PROOFS_REPETITIONS, Lang>(&language_public_parameters, None, false);
+        test_helpers::benchmark_aggregation::<SOUND_PROOFS_REPETITIONS, Lang>(&language_public_parameters, None, false);
     }
 }
