@@ -455,7 +455,7 @@ pub(crate) mod benches {
             Some("2".to_string()),
             true,
             Some(vec![
-                1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096,
+                1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
             ]),
         );
         test_helpers::benchmark_proof::<
@@ -465,7 +465,9 @@ pub(crate) mod benches {
             &language_public_parameters4,
             Some("4".to_string()),
             true,
-            Some(vec![1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]),
+            Some(vec![
+                1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
+            ]),
         );
         test_helpers::benchmark_proof::<
             BIT_SOUNDNESS_PROOFS_REPETITIONS,
@@ -474,7 +476,9 @@ pub(crate) mod benches {
             &language_public_parameters8,
             Some("8".to_string()),
             true,
-            Some(vec![1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]),
+            Some(vec![
+                1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
+            ]),
         );
         test_helpers::benchmark_proof::<
             BIT_SOUNDNESS_PROOFS_REPETITIONS,
@@ -483,7 +487,9 @@ pub(crate) mod benches {
             &language_public_parameters16,
             Some("16".to_string()),
             true,
-            Some(vec![1, 2, 4, 8, 16, 32, 64, 128, 256, 512]),
+            Some(vec![
+                1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
+            ]),
         );
         test_helpers::benchmark_proof::<
             BIT_SOUNDNESS_PROOFS_REPETITIONS,
@@ -492,7 +498,9 @@ pub(crate) mod benches {
             &language_public_parameters32,
             Some("32".to_string()),
             true,
-            Some(vec![1, 2, 4, 8, 16, 32, 64, 128, 256]),
+            Some(vec![
+                1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
+            ]),
         );
         test_helpers::benchmark_proof::<
             BIT_SOUNDNESS_PROOFS_REPETITIONS,
@@ -501,7 +509,9 @@ pub(crate) mod benches {
             &language_public_parameters64,
             Some("64".to_string()),
             true,
-            Some(vec![1, 2, 4, 8, 16, 32, 64, 128]),
+            Some(vec![
+                1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
+            ]),
         );
         test_helpers::benchmark_proof::<
             BIT_SOUNDNESS_PROOFS_REPETITIONS,
@@ -510,7 +520,9 @@ pub(crate) mod benches {
             &language_public_parameters128,
             Some("128".to_string()),
             true,
-            Some(vec![1, 2, 4, 8, 16, 32, 64]),
+            Some(vec![
+                1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
+            ]),
         );
 
         test_helpers::benchmark_aggregation::<
@@ -520,7 +532,7 @@ pub(crate) mod benches {
             &language_public_parameters1,
             Some("1".to_string()),
             true,
-            Some(vec![1, 2, 4, 8, 16, 32, 64, 128]),
+            Some(vec![1, 2, 4, 8, 16, 32, 64, 128, 256]),
         );
         test_helpers::benchmark_aggregation::<
             BIT_SOUNDNESS_PROOFS_REPETITIONS,
@@ -529,7 +541,7 @@ pub(crate) mod benches {
             &language_public_parameters2,
             Some("2".to_string()),
             true,
-            Some(vec![1, 2, 4, 8, 16, 32, 64, 128]),
+            Some(vec![1, 2, 4, 8, 16, 32, 64, 128, 256]),
         );
         test_helpers::benchmark_aggregation::<
             BIT_SOUNDNESS_PROOFS_REPETITIONS,
@@ -538,7 +550,7 @@ pub(crate) mod benches {
             &language_public_parameters4,
             Some("4".to_string()),
             true,
-            Some(vec![1, 2, 4, 8, 16, 32, 64, 128]),
+            Some(vec![1, 2, 4, 8, 16, 32, 64, 128, 256]),
         );
         test_helpers::benchmark_aggregation::<
             BIT_SOUNDNESS_PROOFS_REPETITIONS,
@@ -547,7 +559,7 @@ pub(crate) mod benches {
             &language_public_parameters8,
             Some("8".to_string()),
             true,
-            Some(vec![1, 2, 4, 8, 16, 32, 64]),
+            Some(vec![1, 2, 4, 8, 16, 32, 64, 128, 256]),
         );
         test_helpers::benchmark_aggregation::<
             BIT_SOUNDNESS_PROOFS_REPETITIONS,
@@ -556,7 +568,7 @@ pub(crate) mod benches {
             &language_public_parameters16,
             Some("16".to_string()),
             true,
-            Some(vec![1, 2, 4, 8, 16, 32]),
+            Some(vec![1, 2, 4, 8, 16, 32, 64, 128, 256]),
         );
         test_helpers::benchmark_aggregation::<
             BIT_SOUNDNESS_PROOFS_REPETITIONS,
@@ -565,8 +577,9 @@ pub(crate) mod benches {
             &language_public_parameters32,
             Some("32".to_string()),
             true,
-            Some(vec![1, 2, 4, 8, 16]),
+            Some(vec![1, 2, 4, 8, 16, 32, 64, 128, 256]),
         );
+
         test_helpers::benchmark_aggregation::<
             BIT_SOUNDNESS_PROOFS_REPETITIONS,
             Lang<BIT_SOUNDNESS_PROOFS_REPETITIONS, 64>,
@@ -574,7 +587,7 @@ pub(crate) mod benches {
             &language_public_parameters64,
             Some("64".to_string()),
             true,
-            Some(vec![1, 2, 4, 8]),
+            Some(vec![1, 2, 4, 8, 16, 32, 64, 128, 256]),
         );
     }
 }
