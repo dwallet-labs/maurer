@@ -9,7 +9,7 @@ crypto-bigint = { version = "0.5", features = ["rand_core", "serde"], default-fe
 merlin = { version = "3", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
-group = { git = "https://github.com/dwallet-labs/group.git", branch = "batch_normalize" }
+group = { git = "https://github.com/dwallet-labs/group.git" }
 proof = { git = "https://github.com/dwallet-labs/proof.git", rev = "3a6411bcd76202aca2fa496ce2eb3351595e8282" }
 thiserror = "1.0"
 

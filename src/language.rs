@@ -5,8 +5,10 @@ use core::fmt::Debug;
 use group::{ComputationalSecuritySizedNumber, GroupElement, Samplable};
 use serde::{Deserialize, Serialize};
 
-use crate::proof::{BIT_SOUNDNESS_PROOFS_REPETITIONS, SOUND_PROOFS_REPETITIONS};
-use crate::Result;
+use crate::{
+    proof::{BIT_SOUNDNESS_PROOFS_REPETITIONS, SOUND_PROOFS_REPETITIONS},
+    Result,
+};
 
 /// A Maurer Zero-Knowledge Proof Language.
 ///

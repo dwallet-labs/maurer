@@ -3,16 +3,20 @@
 
 use std::{array, marker::PhantomData};
 
-use crypto_bigint::{rand_core::CryptoRngCore};
-use group::{ComputationalSecuritySizedNumber, GroupElement, helpers::FlatMapResults, Samplable};
+use crypto_bigint::rand_core::CryptoRngCore;
+use group::{helpers::FlatMapResults, ComputationalSecuritySizedNumber, GroupElement, Samplable};
 use merlin::Transcript;
 use proof::TranscriptProtocol;
 use serde::{Deserialize, Serialize};
 
-use crate::{Error, language, Result};
-use crate::language::{GroupsPublicParametersAccessors, StatementSpaceValue, WitnessSpaceValue};
+use crate::{
+    language,
+    language::{GroupsPublicParametersAccessors, StatementSpaceValue, WitnessSpaceValue},
+    Error, Result,
+};
 
-/// The number of repetitions used for sound Maurer proofs, i.e. proofs that achieve negligible soundness error.
+/// The number of repetitions used for sound Maurer proofs, i.e. proofs that achieve negligible
+/// soundness error.
 pub const SOUND_PROOFS_REPETITIONS: usize = 1;
 
 /// The number of repetitions used for Maurer proofs that achieve 1/2 soundness error.
@@ -40,10 +44,10 @@ pub struct Proof<
 }
 
 impl<
-    const REPETITIONS: usize,
-    Language: language::Language<REPETITIONS>,
-    ProtocolContext: Clone + Serialize,
-> Proof<REPETITIONS, Language, ProtocolContext>
+        const REPETITIONS: usize,
+        Language: language::Language<REPETITIONS>,
+        ProtocolContext: Clone + Serialize,
+    > Proof<REPETITIONS, Language, ProtocolContext>
 {
     pub(super) fn new(
         statement_masks: [group::Value<Language::StatementSpaceGroupElement>; REPETITIONS],
@@ -77,7 +81,7 @@ impl<
             statements.clone(),
             rng,
         )
-            .map(|proof| (proof, statements))
+        .map(|proof| (proof, statements))
     }
 
     /// Prove a batched Maurer zero-knowledge claim.
@@ -106,7 +110,7 @@ impl<
             randomizers,
             statement_masks,
         )
-            .map(|proof| (proof, statements))
+        .map(|proof| (proof, statements))
     }
 
     pub(super) fn prove_with_statements(
@@ -188,7 +192,8 @@ impl<
                         |witnesses_and_challenges_linear_combination| {
                             randomizer + witnesses_and_challenges_linear_combination
                         },
-                    ).value()
+                    )
+                    .value()
             })
             .collect::<Vec<_>>()
             .try_into()
@@ -198,7 +203,6 @@ impl<
     }
 
     /// Verify a batched Maurer zero-knowledge proof.
-    ///
 
     pub fn verify(
         &self,
@@ -222,6 +226,7 @@ impl<
         self.verify_inner(challenges, language_public_parameters, statements)
     }
 
+    #[allow(unused)]
     fn verify_with_transcript(
         &self,
         transcript: &mut Transcript,
@@ -304,6 +309,7 @@ impl<
         Err(proof::Error::ProofVerification)?
     }
 
+    #[allow(clippy::type_complexity)]
     pub(super) fn sample_randomizers_and_statement_masks(
         language_public_parameters: &Language::PublicParameters,
         rng: &mut impl CryptoRngCore,
@@ -317,7 +323,7 @@ impl<
                 rng,
             )
         })
-            .flat_map_results()?;
+        .flat_map_results()?;
 
         let statement_masks = randomizers
             .clone()
