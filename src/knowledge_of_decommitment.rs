@@ -239,7 +239,7 @@ mod tests {
                 secp256k1::GroupElement,
             >,
         >(
-            pedersen::PublicParameters::default::<
+            pedersen::PublicParameters::derive_default::<
                 { secp256k1::SCALAR_LIMBS },
                 secp256k1::GroupElement,
             >()
