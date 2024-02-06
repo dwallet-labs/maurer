@@ -9,8 +9,7 @@ mod proof;
 
 #[cfg(feature = "test_helpers")]
 pub mod test_helpers {
-    pub use crate::language::test_helpers::*;
-    pub use crate::proof::test_helpers::*;
+    pub use crate::{language::test_helpers::*, proof::test_helpers::*};
 }
 
 /// Maurer error.
