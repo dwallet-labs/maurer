@@ -15,7 +15,7 @@ use crate::{
     Error, Result,
 };
 
-/// The number of repetitions used for sound Maurer proofs, i.e. proofs that achieve negligible
+/// The number of repetitions used for sound Maurer proofs, i.e., proofs that achieve negligible
 /// soundness error.
 pub const SOUND_PROOFS_REPETITIONS: usize = 1;
 
@@ -87,7 +87,7 @@ impl<
     /// Prove a batched Maurer zero-knowledge claim.
     /// Returns the zero-knowledge proof.
     ///
-    /// An inner function to be used when the randomizers should be sampled from a sub-domain.
+    /// An inner function to be used when the randomizers should be sampled from a subdomain.
     /// Unless that is the case, use ['Self::prove'].
     pub fn prove_with_randomizers(
         protocol_context: &ProtocolContext,
@@ -197,7 +197,7 @@ impl<
             })
             .collect::<Vec<_>>()
             .try_into()
-            .map_err(|_| crate::Error::InternalError)?;
+            .map_err(|_| Error::InternalError)?;
 
         Ok(Self::new(statement_masks_values, responses))
     }
@@ -387,7 +387,7 @@ impl<
                     let challenge = transcript.challenge(b"challenge");
 
                     // we don't have to do this because Merlin uses a PRF behind the scenes,
-                    // but we do it anyways as a security best-practice
+                    // but we do it anyway as a security best-practice
                     transcript.append_uint(b"challenge", &challenge);
 
                     challenge
