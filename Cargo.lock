@@ -19,9 +19,9 @@ checksum = "4b46cbb362ab8752921c97e041f5e366ee6297bd428a31275b9fcf1e380f7299"
 
 [[package]]
 name = "anstyle"
-version = "1.0.5"
+version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2faccea4cc4ab4a667ce676a30e8ec13922a692c99bb8f5b11f1502c72e04220"
+checksum = "8901269c6307e8d93993578286ac0edf7f195079ffff5ebdeea6a59ffb7e36bc"
 
 [[package]]
 name = "autocfg"
@@ -151,7 +151,7 @@ checksum = "702fc72eb24e5a1e48ce58027a675bc24edd52096d5397d4aea7c6dd9eca0bd1"
 [[package]]
 name = "commitment"
 version = "0.1.0"
-source = "git+https://github.com/dwallet-labs/commitment.git#f1ed5f2246e630e5f3206abd479f8ec3e2d6253a"
+source = "git+https://github.com/dwallet-labs/commitment.git#27e138737766215b644df49457e5690f3f00410c"
 dependencies = [
  "crypto-bigint",
  "group 0.1.0",
@@ -328,6 +328,7 @@ dependencies = [
  "rfc6979",
  "serdect",
  "signature",
+ "spki",
 ]
 
 [[package]]
@@ -502,7 +503,7 @@ checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
 [[package]]
 name = "group"
 version = "0.1.0"
-source = "git+https://github.com/dwallet-labs/group.git#bdfa95a3fc8633d01252b87c791ff14a51e73ec6"
+source = "git+https://github.com/dwallet-labs/group.git#d1c1587a6109d1ddecd1f3b53742f7830cf691b2"
 dependencies = [
  "crypto-bigint",
  "curve25519-dalek-ng",
@@ -538,9 +539,9 @@ dependencies = [
 
 [[package]]
 name = "hermit-abi"
-version = "0.3.4"
+version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d3d0e0f38255e7fa3cf31335b3a56f05febd18025f4db5ef7a0cfb4f8da651f"
+checksum = "d0c62115964e08cb8039170eb33c1d0e2388a256930279edca206fff675f82c3"
 
 [[package]]
 name = "hmac"
@@ -611,9 +612,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.152"
+version = "0.2.153"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13e3bf6590cbc649f4d1a3eefc9d5d6eb746f5200ffb04e5e142700b8faa56e7"
+checksum = "9c198f91728a82281a64e1f4f9eeb25d82cb32a5de251c6bd1b5154d63a8e7bd"
 
 [[package]]
 name = "linux-raw-sys"
@@ -767,8 +768,9 @@ dependencies = [
 [[package]]
 name = "proof"
 version = "0.1.0"
-source = "git+https://github.com/dwallet-labs/proof.git?rev=3a6411bcd76202aca2fa496ce2eb3351595e8282#3a6411bcd76202aca2fa496ce2eb3351595e8282"
+source = "git+https://github.com/dwallet-labs/proof.git?branch=aggregation-tests#82c9d2b8b818fdab6994b0133e868ba4500d1581"
 dependencies = [
+ "commitment",
  "criterion",
  "crypto-bigint",
  "group 0.1.0",
@@ -994,9 +996,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.112"
+version = "1.0.113"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d1bd37ce2324cf3bf85e5a25f96eb4baf0d5aa6eba43e7ae8958870c4ec48ed"
+checksum = "69801b70b1c3dac963ecb03a364ba0ceda9cf60c71cfe475e99864759c8b8a79"
 dependencies = [
  "itoa",
  "ryu",
