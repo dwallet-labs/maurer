@@ -4,17 +4,16 @@
 use std::collections::{HashMap, HashSet};
 
 use crypto_bigint::rand_core::CryptoRngCore;
-use group::GroupElement;
 use group::helpers::FlatMapResults;
 use group::PartyID;
+use group::{ComputationalSecuritySizedNumber, GroupElement};
 use proof::aggregation::ProofAggregationRoundParty;
 use serde::Serialize;
 
-use crate::{Error, Proof, Result};
-use crate::aggregation::{Output, process_incoming_messages};
 use crate::aggregation::proof_share_round::ProofShare;
+use crate::aggregation::{process_incoming_messages, Output};
 use crate::language::GroupsPublicParametersAccessors;
-use crate::proof::ChallengeSizedNumber;
+use crate::{Error, Proof, Result};
 
 #[cfg_attr(feature = "test_helpers", derive(Clone))]
 pub struct Party<
@@ -31,7 +30,8 @@ pub struct Party<
     pub(crate) provers: HashSet<PartyID>,
     pub(super) language_public_parameters: Language::PublicParameters,
     pub(super) protocol_context: ProtocolContext,
-    pub(super) statement_masks: HashMap<PartyID, [group::Value<Language::StatementSpaceGroupElement>; REPETITIONS]>,
+    pub(super) statement_masks:
+        HashMap<PartyID, [group::Value<Language::StatementSpaceGroupElement>; REPETITIONS]>,
     pub(super) statements: HashMap<PartyID, Vec<Language::StatementSpaceGroupElement>>,
     pub(super) aggregated_statements: Vec<Language::StatementSpaceGroupElement>,
     pub(super) aggregated_statement_masks: [Language::StatementSpaceGroupElement; REPETITIONS],
@@ -39,11 +39,11 @@ pub struct Party<
 }
 
 impl<
-    const REPETITIONS: usize,
-    Language: crate::Language<REPETITIONS>,
-    ProtocolContext: Clone + Serialize,
-> ProofAggregationRoundParty<Output<REPETITIONS, Language, ProtocolContext>>
-for Party<REPETITIONS, Language, ProtocolContext>
+        const REPETITIONS: usize,
+        Language: crate::Language<REPETITIONS>,
+        ProtocolContext: Clone + Serialize,
+    > ProofAggregationRoundParty<Output<REPETITIONS, Language, ProtocolContext>>
+    for Party<REPETITIONS, Language, ProtocolContext>
 {
     type Error = Error;
     type ProofShare = ProofShare<REPETITIONS, Language>;
@@ -97,10 +97,10 @@ for Party<REPETITIONS, Language, ProtocolContext>
                 .map(|(party_id, proof_share)| (party_id, proof_share.unwrap()))
                 .collect();
 
-        let responses =
-            Language::WitnessSpaceGroupElement::batch_normalize_const_generic(proof_shares
-                .values()
-                .fold(Ok(self.responses), |aggregated_responses, proof_share| {
+        let responses = Language::WitnessSpaceGroupElement::batch_normalize_const_generic(
+            proof_shares.values().fold(
+                Ok(self.responses),
+                |aggregated_responses, proof_share| {
                     aggregated_responses.and_then(|aggregated_responses| {
                         aggregated_responses
                             .into_iter()
@@ -110,9 +110,14 @@ for Party<REPETITIONS, Language, ProtocolContext>
                             .try_into()
                             .map_err(|_| Error::InternalError)
                     })
-                })?);
+                },
+            )?,
+        );
 
-        let aggregated_statement_masks = Language::StatementSpaceGroupElement::batch_normalize_const_generic(self.aggregated_statement_masks);
+        let aggregated_statement_masks =
+            Language::StatementSpaceGroupElement::batch_normalize_const_generic(
+                self.aggregated_statement_masks,
+            );
         let aggregated_proof = Proof::new(aggregated_statement_masks, responses);
         if aggregated_proof
             .verify(
@@ -129,12 +134,17 @@ for Party<REPETITIONS, Language, ProtocolContext>
             let mut transcript = Proof::<REPETITIONS, Language, ProtocolContext>::setup_transcript(
                 &self.protocol_context,
                 &self.language_public_parameters,
-                Language::StatementSpaceGroupElement::batch_normalize(self.aggregated_statements.clone()),
+                Language::StatementSpaceGroupElement::batch_normalize(
+                    self.aggregated_statements.clone(),
+                ),
                 &aggregated_statement_masks,
             )?;
 
-            let challenges: [Vec<ChallengeSizedNumber>; REPETITIONS] =
-                Proof::<REPETITIONS, Language, ProtocolContext>::compute_challenges(self.aggregated_statements.len(), &mut transcript);
+            let challenges: [Vec<ComputationalSecuritySizedNumber>; REPETITIONS] =
+                Proof::<REPETITIONS, Language, ProtocolContext>::compute_challenges(
+                    self.aggregated_statements.len(),
+                    &mut transcript,
+                );
 
             let proofs: HashMap<_, _> = proof_shares
                 .into_iter()
@@ -144,13 +154,17 @@ for Party<REPETITIONS, Language, ProtocolContext>
                         Proof::<REPETITIONS, Language, ProtocolContext>::new(
                             // Same parties participating in all rounds, safe to `.unwrap()`.
                             *self.statement_masks.get(&party_id).unwrap(),
-                            Language::WitnessSpaceGroupElement::batch_normalize_const_generic(proof_share),
+                            Language::WitnessSpaceGroupElement::batch_normalize_const_generic(
+                                proof_share,
+                            ),
                         ),
                     )
-                }).collect();
+                })
+                .collect();
 
-            let mut proof_share_cheating_parties: Vec<PartyID> =
-                proofs.into_iter().filter(|(party_id, proof)| {
+            let mut proof_share_cheating_parties: Vec<PartyID> = proofs
+                .into_iter()
+                .filter(|(party_id, proof)| {
                     proof
                         .verify_inner(
                             challenges.clone(),
@@ -160,8 +174,8 @@ for Party<REPETITIONS, Language, ProtocolContext>
                         )
                         .is_err()
                 })
-                    .map(|(party_id, _)| party_id)
-                    .collect();
+                .map(|(party_id, _)| party_id)
+                .collect();
             proof_share_cheating_parties.sort();
 
             return Err(proof::aggregation::Error::ProofShareVerification(

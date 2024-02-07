@@ -4,14 +4,13 @@
 pub use language::Language;
 pub use proof::Proof;
 
+pub mod aggregation;
 pub mod language;
 mod proof;
-pub mod aggregation;
 
 #[cfg(feature = "test_helpers")]
 pub mod test_helpers {
-    pub use crate::language::test_helpers::*;
-    pub use crate::proof::test_helpers::*;
+    pub use crate::{language::test_helpers::*, proof::test_helpers::*};
 }
 
 /// Maurer error.
@@ -42,7 +41,12 @@ impl TryInto<::proof::aggregation::Error> for Error {
     fn try_into(self) -> std::result::Result<::proof::aggregation::Error, Self::Error> {
         match self {
             Error::Aggregation(e) => Ok(e),
-            e => Err(e)
+            e => Err(e),
         }
     }
 }
+#[cfg(feature = "benchmarking")]
+criterion::criterion_group!(benches, empty_benchmark);
+
+#[cfg(feature = "benchmarking")]
+pub fn empty_benchmark(_c: &mut criterion::Criterion) {}
