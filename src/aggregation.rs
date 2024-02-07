@@ -17,7 +17,11 @@ pub type Output<const REPETITIONS: usize, Language, ProtocolContext> = (
     Vec<language::StatementSpaceGroupElement<REPETITIONS, Language>>,
 );
 
-fn process_incoming_messages<T>(party_id: PartyID, provers: HashSet<PartyID>, messages: HashMap<PartyID, T>) -> Result<HashMap<PartyID, T>> {
+fn process_incoming_messages<T>(
+    party_id: PartyID,
+    provers: HashSet<PartyID>,
+    messages: HashMap<PartyID, T>,
+) -> Result<HashMap<PartyID, T>> {
     // First remove parties that didn't participate in the previous round, as they shouldn't be
     // allowed to join the session half-way, and we can self-heal this malicious behaviour
     // without needing to stop the session and report.
@@ -32,14 +36,16 @@ fn process_incoming_messages<T>(party_id: PartyID, provers: HashSet<PartyID>, me
     let other_provers: HashSet<_> = provers.into_iter().filter(|pid| *pid != party_id).collect();
 
     let mut unresponsive_parties: Vec<PartyID> = other_provers
-        .symmetric_difference(&current_round_party_ids)
+        .difference(&current_round_party_ids)
         .cloned()
         .collect();
 
     unresponsive_parties.sort();
 
     if !unresponsive_parties.is_empty() {
-        return Err(proof::aggregation::Error::UnresponsiveParties(unresponsive_parties))?;
+        return Err(proof::aggregation::Error::UnresponsiveParties(
+            unresponsive_parties,
+        ))?;
     }
 
     Ok(messages)
