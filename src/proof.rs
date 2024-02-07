@@ -3,27 +3,24 @@
 
 use std::{array, marker::PhantomData};
 
-use crypto_bigint::{rand_core::CryptoRngCore, ConcatMixed, U128};
+use crypto_bigint::rand_core::CryptoRngCore;
 use group::{helpers::FlatMapResults, ComputationalSecuritySizedNumber, GroupElement, Samplable};
 use merlin::Transcript;
 use proof::TranscriptProtocol;
 use serde::{Deserialize, Serialize};
 
-use crate::language::{GroupsPublicParametersAccessors, StatementSpaceValue, WitnessSpaceValue};
-use crate::{language, Error, Result};
+use crate::{
+    language,
+    language::{GroupsPublicParametersAccessors, StatementSpaceValue, WitnessSpaceValue},
+    Error, Result,
+};
 
-/// The number of repetitions used for sound Maurer proofs, i.e. proofs that achieve negligible soundness error.
+/// The number of repetitions used for sound Maurer proofs, i.e., proofs that achieve negligible
+/// soundness error.
 pub const SOUND_PROOFS_REPETITIONS: usize = 1;
 
 /// The number of repetitions used for Maurer proofs that achieve 1/2 soundness error.
 pub const BIT_SOUNDNESS_PROOFS_REPETITIONS: usize = ComputationalSecuritySizedNumber::BITS;
-
-// For a batch size $N_B$, the challenge space should be $[0,N_B \cdot 2^{\kappa + 2})$.
-// Setting it to be 128-bit larger than the computational security parameter $\kappa$ allows us to
-// use any batch size (Rust does not allow a vector larger than $2^64$ elements,
-// as does 64-bit architectures in which the memory won't even be addressable.)
-pub(super) type ChallengeSizedNumber =
-    <ComputationalSecuritySizedNumber as ConcatMixed<U128>>::MixedOutput;
 
 /// A Batched Maurer Zero-Knowledge Proof.
 /// Implements Appendix B. Maurer Protocols in the paper.
@@ -90,7 +87,7 @@ impl<
     /// Prove a batched Maurer zero-knowledge claim.
     /// Returns the zero-knowledge proof.
     ///
-    /// An inner function to be used when the randomizers should be sampled from a sub-domain.
+    /// An inner function to be used when the randomizers should be sampled from a subdomain.
     /// Unless that is the case, use ['Self::prove'].
     pub fn prove_with_randomizers(
         protocol_context: &ProtocolContext,
@@ -150,63 +147,62 @@ impl<
 
         let batch_size = witnesses.len();
 
-        let statement_masks_values = statement_masks
-            .clone()
-            .map(|statement_mask| statement_mask.value());
+        let statement_masks_values =
+            Language::StatementSpaceGroupElement::batch_normalize_const_generic(statement_masks);
+
+        let statements_values =
+            Language::StatementSpaceGroupElement::batch_normalize(statements.clone());
 
         let mut transcript = Self::setup_transcript(
             protocol_context,
             language_public_parameters,
-            statements
-                .iter()
-                .map(|statement| statement.value())
-                .collect(),
+            statements_values,
             &statement_masks_values,
         )?;
 
-        let challenges: [Vec<ChallengeSizedNumber>; REPETITIONS] =
+        let challenges: [Vec<ComputationalSecuritySizedNumber>; REPETITIONS] =
             Self::compute_challenges(batch_size, &mut transcript);
 
-        let challenge_bit_size = Language::challenge_bits(batch_size)?;
-        let responses = randomizers
-            .into_iter()
-            .zip(challenges)
-            .map(|(randomizer, challenges)| {
-                witnesses
-                    .clone()
-                    .into_iter()
-                    .zip(challenges)
-                    .filter_map(|(witness, challenge)| {
-                        if challenge_bit_size == 1 {
-                            // A special case that needs special caring.
-                            if challenge == ChallengeSizedNumber::ZERO {
-                                None
+        let challenge_bit_size = Language::challenge_bits()?;
+        let responses = Language::WitnessSpaceGroupElement::batch_normalize_const_generic(
+            randomizers
+                .into_iter()
+                .zip(challenges)
+                .map(|(randomizer, challenges)| {
+                    witnesses
+                        .clone()
+                        .into_iter()
+                        .zip(challenges)
+                        .filter_map(|(witness, challenge)| {
+                            if challenge_bit_size == 1 {
+                                // A special case that needs special caring.
+                                if challenge == ComputationalSecuritySizedNumber::ZERO {
+                                    None
+                                } else {
+                                    Some(witness)
+                                }
                             } else {
-                                Some(witness)
+                                // Using the "small exponents" method for batching.
+                                Some(witness.scalar_mul_bounded(&challenge, challenge_bit_size))
                             }
-                        } else {
-                            // Using the "small exponents" method for batching.
-                            Some(witness.scalar_mul_bounded(&challenge, challenge_bit_size))
-                        }
-                    })
-                    .reduce(|a, b| a + b)
-                    .map_or(
-                        randomizer.clone(),
-                        |witnesses_and_challenges_linear_combination| {
-                            randomizer + witnesses_and_challenges_linear_combination
-                        },
-                    )
-                    .value()
-            })
-            .collect::<Vec<_>>()
-            .try_into()
-            .map_err(|_| crate::Error::InternalError)?;
+                        })
+                        .reduce(|a, b| a + b)
+                        .map_or(
+                            randomizer.clone(),
+                            |witnesses_and_challenges_linear_combination| {
+                                randomizer + witnesses_and_challenges_linear_combination
+                            },
+                        )
+                })
+                .collect::<Vec<_>>()
+                .try_into()
+                .map_err(|_| Error::InternalError)?,
+        );
 
         Ok(Self::new(statement_masks_values, responses))
     }
 
     /// Verify a batched Maurer zero-knowledge proof.
-    ///
 
     pub fn verify(
         &self,
@@ -217,26 +213,24 @@ impl<
         let mut transcript = Self::setup_transcript(
             protocol_context,
             language_public_parameters,
-            statements
-                .iter()
-                .map(|statement| statement.value())
-                .collect(),
+            Language::StatementSpaceGroupElement::batch_normalize(statements.clone()),
             &self.statement_masks,
         )?;
 
-        let challenges: [Vec<ChallengeSizedNumber>; REPETITIONS] =
+        let challenges: [Vec<ComputationalSecuritySizedNumber>; REPETITIONS] =
             Self::compute_challenges(statements.len(), &mut transcript);
 
         self.verify_inner(challenges, language_public_parameters, statements)
     }
 
+    #[allow(unused)]
     fn verify_with_transcript(
         &self,
         transcript: &mut Transcript,
         language_public_parameters: &Language::PublicParameters,
         statements: Vec<Language::StatementSpaceGroupElement>,
     ) -> Result<()> {
-        let challenges: [Vec<ChallengeSizedNumber>; REPETITIONS] =
+        let challenges: [Vec<ComputationalSecuritySizedNumber>; REPETITIONS] =
             Self::compute_challenges(statements.len(), transcript);
 
         self.verify_inner(challenges, language_public_parameters, statements)
@@ -244,12 +238,10 @@ impl<
 
     pub(crate) fn verify_inner(
         &self,
-        challenges: [Vec<ChallengeSizedNumber>; REPETITIONS],
+        challenges: [Vec<ComputationalSecuritySizedNumber>; REPETITIONS],
         language_public_parameters: &Language::PublicParameters,
         statements: Vec<Language::StatementSpaceGroupElement>,
     ) -> Result<()> {
-        let batch_size = statements.len();
-
         let responses = self
             .responses
             .map(|response| {
@@ -274,7 +266,7 @@ impl<
             .map(|response| Language::homomorphose(&response, language_public_parameters))
             .flat_map_results()?;
 
-        let challenge_bit_size = Language::challenge_bits(batch_size)?;
+        let challenge_bit_size = Language::challenge_bits()?;
         let reconstructed_response_statements: [Language::StatementSpaceGroupElement; REPETITIONS] =
             statement_masks
                 .into_iter()
@@ -287,7 +279,7 @@ impl<
                         .filter_map(|(statement, challenge)| {
                             if challenge_bit_size == 1 {
                                 // A special case that needs special caring
-                                if challenge == ChallengeSizedNumber::ZERO {
+                                if challenge == ComputationalSecuritySizedNumber::ZERO {
                                     None
                                 } else {
                                     Some(statement)
@@ -314,6 +306,7 @@ impl<
         Err(proof::Error::ProofVerification)?
     }
 
+    #[allow(clippy::type_complexity)]
     pub(super) fn sample_randomizers_and_statement_masks(
         language_public_parameters: &Language::PublicParameters,
         rng: &mut impl CryptoRngCore,
@@ -384,14 +377,14 @@ impl<
     pub(crate) fn compute_challenges(
         batch_size: usize,
         transcript: &mut Transcript,
-    ) -> [Vec<ChallengeSizedNumber>; REPETITIONS] {
+    ) -> [Vec<ComputationalSecuritySizedNumber>; REPETITIONS] {
         array::from_fn(|_| {
             (1..=batch_size)
                 .map(|_| {
                     let challenge = transcript.challenge(b"challenge");
 
                     // we don't have to do this because Merlin uses a PRF behind the scenes,
-                    // but we do it anyways as a security best-practice
+                    // but we do it anyway as a security best-practice
                     transcript.append_uint(b"challenge", &challenge);
 
                     challenge
@@ -401,15 +394,18 @@ impl<
     }
 }
 
+// These tests helpers can be used for different `group` implementations,
+// therefor they need to be exported.
+// Since exporting rust `#[cfg(test)]` is impossible, they exist in a dedicated feature-gated module.
 #[cfg(feature = "test_helpers")]
 pub(super) mod test_helpers {
-    use criterion::measurement::{Measurement, WallTime};
-    use rand_core::OsRng;
     use std::marker::PhantomData;
 
-    use crate::test_helpers::{sample_witness, sample_witnesses};
+    use criterion::measurement::{Measurement, WallTime};
+    use rand_core::OsRng;
 
     use super::*;
+    use crate::test_helpers::{sample_witness, sample_witnesses};
 
     pub fn generate_valid_proof<
         const REPETITIONS: usize,
@@ -521,7 +517,7 @@ pub(super) mod test_helpers {
                     .unwrap(),
                 Error::Proof(proof::Error::ProofVerification)
             ),
-            "proof with a wrong response shouldn't verify"
+            "proof with a wrong response shouldn't pass verification"
         );
 
         let mut invalid_proof = valid_proof.clone();
@@ -535,7 +531,7 @@ pub(super) mod test_helpers {
                     .unwrap(),
                 Error::Proof(proof::Error::ProofVerification)
             ),
-            "proof with a neutral statement_mask shouldn't verify"
+            "proof with a neutral statement_mask shouldn't pass verification"
         );
 
         let mut invalid_proof = valid_proof.clone();
@@ -549,7 +545,7 @@ pub(super) mod test_helpers {
                     .unwrap(),
                 Error::Proof(proof::Error::ProofVerification)
             ),
-            "proof with a neutral response shouldn't verify"
+            "proof with a neutral response shouldn't pass verification"
         );
 
         if let Some(invalid_statement_space_value) = invalid_statement_space_value {
@@ -589,7 +585,8 @@ pub(super) mod test_helpers {
         }
     }
 
-    /// Simulates a malicious prover that tries to trick an honest verifier by proving a statement over wrong public parameters.
+    /// Simulates a malicious prover that tries to trick an honest verifier by proving a statement
+    /// over wrong public parameters.
     pub fn proof_over_invalid_public_parameters_fails_verification<
         const REPETITIONS: usize,
         Language: language::Language<REPETITIONS>,
@@ -600,13 +597,13 @@ pub(super) mod test_helpers {
         rng: &mut impl CryptoRngCore,
     ) {
         let witnesses = sample_witnesses::<REPETITIONS, Language>(
-            &verifier_language_public_parameters,
+            verifier_language_public_parameters,
             batch_size,
             rng,
         );
 
         let (proof, statements) = generate_valid_proof::<REPETITIONS, Language>(
-            &prover_language_public_parameters,
+            prover_language_public_parameters,
             witnesses,
             rng,
         );
@@ -616,14 +613,14 @@ pub(super) mod test_helpers {
                 proof
                     .verify(
                         &PhantomData,
-                        &verifier_language_public_parameters,
+                        verifier_language_public_parameters,
                         statements,
                     )
                     .err()
                     .unwrap(),
                 Error::Proof(proof::Error::ProofVerification)
             ),
-            "proof over wrong public parameters shouldn't verify"
+            "proof over wrong public parameters shouldn't pass verification"
         );
     }
 
@@ -646,11 +643,11 @@ pub(super) mod test_helpers {
             Transcript::new("".as_bytes())
         };
 
-        protocol_context.map(|protocol_context| {
+        if let Some(protocol_context) = protocol_context {
             transcript
                 .serialize_to_transcript_as_json(b"protocol context", &protocol_context)
                 .unwrap()
-        });
+        }
 
         language_public_parameters.map(|language_public_parameters| {
             transcript
@@ -673,21 +670,21 @@ pub(super) mod test_helpers {
             )
         });
 
-        statements.map(|statements| {
+        if let Some(statements) = statements {
             statements.iter().for_each(|statement| {
                 transcript
                     .serialize_to_transcript_as_json(b"statement value", &statement)
                     .unwrap()
             })
-        });
+        }
 
-        statement_masks_values.map(|statement_masks| {
+        if let Some(statement_masks) = statement_masks_values {
             statement_masks.iter().for_each(|statement_mask| {
                 transcript
                     .serialize_to_transcript_as_json(b"statement mask value", &statement_mask)
                     .unwrap()
             })
-        });
+        }
 
         transcript
     }
@@ -725,7 +722,7 @@ pub(super) mod test_helpers {
                         Some(protocol_context.clone()),
                         Some(language_public_parameters.clone()),
                         Some(statement_values.clone()),
-                        Some(proof.statement_masks.clone()),
+                        Some(proof.statement_masks),
                     ),
                     language_public_parameters,
                     statements.clone()
@@ -743,7 +740,7 @@ pub(super) mod test_helpers {
                             Some(protocol_context.clone()),
                             Some(language_public_parameters.clone()),
                             Some(statement_values.clone()),
-                            Some(proof.statement_masks.clone()),
+                            Some(proof.statement_masks),
                         ),
                         language_public_parameters,
                         statements.clone()
@@ -764,7 +761,7 @@ pub(super) mod test_helpers {
                             None,
                             Some(language_public_parameters.clone()),
                             Some(statement_values.clone()),
-                            Some(proof.statement_masks.clone()),
+                            Some(proof.statement_masks),
                         ),
                         language_public_parameters,
                         statements.clone()
@@ -785,7 +782,7 @@ pub(super) mod test_helpers {
                             Some(protocol_context.clone()),
                             None,
                             Some(statement_values.clone()),
-                            Some(proof.statement_masks.clone()),
+                            Some(proof.statement_masks),
                         ),
                         language_public_parameters,
                         statements.clone()
@@ -806,7 +803,7 @@ pub(super) mod test_helpers {
                             Some(protocol_context.clone()),
                             Some(language_public_parameters.clone()),
                             None,
-                            Some(proof.statement_masks.clone()),
+                            Some(proof.statement_masks),
                         ),
                         language_public_parameters,
                         statements.clone()
@@ -844,6 +841,7 @@ pub(super) mod test_helpers {
         language_public_parameters: &Language::PublicParameters,
         extra_description: Option<String>,
         as_millis: bool,
+        batch_sizes: Option<Vec<usize>>,
     ) {
         let measurement = WallTime;
 
@@ -852,7 +850,10 @@ pub(super) mod test_helpers {
             "\nLanguage Name, Repetitions, Extra Description, Batch Size, Batch Normalize Time (µs), Setup Transcript Time (µs), Prove Time ({timestamp}), Verification Time ({timestamp})",
         );
 
-        for batch_size in [1, 10, 100, 1000, 10000] {
+        for batch_size in batch_sizes
+            .unwrap_or(vec![1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024])
+            .into_iter()
+        {
             let witnesses = sample_witnesses::<REPETITIONS, Language>(
                 language_public_parameters,
                 batch_size,
@@ -867,7 +868,9 @@ pub(super) mod test_helpers {
             let statements = statements.unwrap();
 
             let now = measurement.start();
-            criterion::black_box(statements.iter().map(|x| x.value()).collect::<Vec<_>>());
+            criterion::black_box(Language::StatementSpaceGroupElement::batch_normalize(
+                statements.clone(),
+            ));
             let normalize_time = measurement.end(now);
 
             let statements_values: Vec<_> = statements.iter().map(|x| x.value()).collect();

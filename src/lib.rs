@@ -49,3 +49,8 @@ impl TryInto<::proof::aggregation::Error> for Error {
         }
     }
 }
+#[cfg(feature = "benchmarking")]
+criterion::criterion_group!(benches, empty_benchmark);
+
+#[cfg(feature = "benchmarking")]
+pub fn empty_benchmark(_c: &mut criterion::Criterion) {}

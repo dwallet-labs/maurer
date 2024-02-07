@@ -10,7 +10,7 @@ merlin = { version = "3", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 group = { git = "https://github.com/dwallet-labs/group.git" }
-proof = { git = "https://github.com/dwallet-labs/proof.git", branch = "aggregation-tests" }
+proof = { git = "https://github.com/dwallet-labs/proof.git" }
 commitment = { git = "https://github.com/dwallet-labs/commitment.git" }
 thiserror = "1.0"
 
@@ -25,3 +25,6 @@ rand_core = { version = "0.6", features = ["std"] }
 test_helpers = ["dep:criterion", "dep:rand_core", "dep:rstest", "proof/test_helpers"]
 benchmarking = ["test_helpers"]
 
+[[bench]]
+name = "benches"
+harness = false
