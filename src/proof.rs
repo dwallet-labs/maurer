@@ -393,3 +393,444 @@ impl<
         })
     }
 }
+
+// These tests helpers can be used for different `group` implementations,
+// therefor they need to be exported.
+// Since exporting rust `#[cfg(test)]` is impossible, they exist in a dedicated feature-gated module.
+#[cfg(feature = "test_helpers")]
+pub(super) mod test_helpers {
+    use std::marker::PhantomData;
+
+    use super::*;
+    use crate::test_helpers::{sample_witness, sample_witnesses};
+
+    pub fn generate_valid_proof<
+        const REPETITIONS: usize,
+        Language: language::Language<REPETITIONS>,
+    >(
+        language_public_parameters: &Language::PublicParameters,
+        witnesses: Vec<Language::WitnessSpaceGroupElement>,
+        rng: &mut impl CryptoRngCore,
+    ) -> (
+        Proof<REPETITIONS, Language, PhantomData<()>>,
+        Vec<Language::StatementSpaceGroupElement>,
+    ) {
+        Proof::prove(&PhantomData, language_public_parameters, witnesses, rng).unwrap()
+    }
+
+    pub fn valid_proof_verifies<
+        const REPETITIONS: usize,
+        Language: language::Language<REPETITIONS>,
+    >(
+        language_public_parameters: &Language::PublicParameters,
+        batch_size: usize,
+        rng: &mut impl CryptoRngCore,
+    ) {
+        let witnesses =
+            sample_witnesses::<REPETITIONS, Language>(language_public_parameters, batch_size, rng);
+
+        valid_proof_verifies_internal::<REPETITIONS, Language>(
+            language_public_parameters,
+            witnesses,
+            rng,
+        )
+    }
+
+    pub fn valid_proof_verifies_internal<
+        const REPETITIONS: usize,
+        Language: language::Language<REPETITIONS>,
+    >(
+        language_public_parameters: &Language::PublicParameters,
+        witnesses: Vec<Language::WitnessSpaceGroupElement>,
+        rng: &mut impl CryptoRngCore,
+    ) {
+        let (proof, statements) = generate_valid_proof::<REPETITIONS, Language>(
+            language_public_parameters,
+            witnesses.clone(),
+            rng,
+        );
+
+        assert!(
+            proof
+                .verify(&PhantomData, language_public_parameters, statements)
+                .is_ok(),
+            "valid proofs should verify"
+        );
+    }
+
+    pub fn invalid_proof_fails_verification<
+        const REPETITIONS: usize,
+        Language: language::Language<REPETITIONS>,
+    >(
+        invalid_witness_space_value: Option<WitnessSpaceValue<REPETITIONS, Language>>,
+        invalid_statement_space_value: Option<StatementSpaceValue<REPETITIONS, Language>>,
+        language_public_parameters: &Language::PublicParameters,
+        batch_size: usize,
+        rng: &mut impl CryptoRngCore,
+    ) {
+        let witnesses =
+            sample_witnesses::<REPETITIONS, Language>(language_public_parameters, batch_size, rng);
+
+        let (valid_proof, statements) = generate_valid_proof::<REPETITIONS, Language>(
+            language_public_parameters,
+            witnesses.clone(),
+            rng,
+        );
+
+        let wrong_witness =
+            sample_witness::<REPETITIONS, Language>(language_public_parameters, rng);
+
+        let wrong_statement =
+            Language::homomorphose(&wrong_witness, language_public_parameters).unwrap();
+
+        assert!(
+            matches!(
+                valid_proof
+                    .verify(
+                        &PhantomData,
+                        language_public_parameters,
+                        statements
+                            .clone()
+                            .into_iter()
+                            .take(batch_size - 1)
+                            .chain(vec![wrong_statement.clone()])
+                            .collect(),
+                    )
+                    .err()
+                    .unwrap(),
+                Error::Proof(proof::Error::ProofVerification)
+            ),
+            "valid proof shouldn't verify against wrong statements"
+        );
+
+        let mut invalid_proof = valid_proof.clone();
+        invalid_proof.responses = [wrong_witness.value(); REPETITIONS];
+
+        assert!(
+            matches!(
+                invalid_proof
+                    .verify(&PhantomData, language_public_parameters, statements.clone(),)
+                    .err()
+                    .unwrap(),
+                Error::Proof(proof::Error::ProofVerification)
+            ),
+            "proof with a wrong response shouldn't pass verification"
+        );
+
+        let mut invalid_proof = valid_proof.clone();
+        invalid_proof.statement_masks = [wrong_statement.neutral().value(); REPETITIONS];
+
+        assert!(
+            matches!(
+                invalid_proof
+                    .verify(&PhantomData, language_public_parameters, statements.clone(),)
+                    .err()
+                    .unwrap(),
+                Error::Proof(proof::Error::ProofVerification)
+            ),
+            "proof with a neutral statement_mask shouldn't pass verification"
+        );
+
+        let mut invalid_proof = valid_proof.clone();
+        invalid_proof.responses = [wrong_witness.neutral().value(); REPETITIONS];
+
+        assert!(
+            matches!(
+                invalid_proof
+                    .verify(&PhantomData, language_public_parameters, statements.clone(),)
+                    .err()
+                    .unwrap(),
+                Error::Proof(proof::Error::ProofVerification)
+            ),
+            "proof with a neutral response shouldn't pass verification"
+        );
+
+        if let Some(invalid_statement_space_value) = invalid_statement_space_value {
+            let mut invalid_proof = valid_proof.clone();
+            invalid_proof.statement_masks = [invalid_statement_space_value; REPETITIONS];
+
+            assert!(matches!(
+            invalid_proof
+                .verify(
+                    &PhantomData,
+                    language_public_parameters,
+                    statements.clone(),
+                )
+                .err()
+                .unwrap(),
+            Error::GroupInstantiation(group::Error::InvalidGroupElement)),
+                    "proof with an invalid statement_mask value should generate an invalid parameter error when checking the element is not in the group"
+            );
+        }
+
+        if let Some(invalid_witness_space_value) = invalid_witness_space_value {
+            let mut invalid_proof = valid_proof.clone();
+            invalid_proof.responses = [invalid_witness_space_value; REPETITIONS];
+
+            assert!(matches!(
+            invalid_proof
+                .verify(
+                    &PhantomData,
+                    language_public_parameters,
+                    statements.clone(),
+                )
+                .err()
+                .unwrap(),
+            Error::GroupInstantiation(group::Error::InvalidGroupElement)),
+                    "proof with an invalid response value should generate an invalid parameter error when checking the element is not in the group"
+            );
+        }
+    }
+
+    /// Simulates a malicious prover that tries to trick an honest verifier by proving a statement
+    /// over wrong public parameters.
+    pub fn proof_over_invalid_public_parameters_fails_verification<
+        const REPETITIONS: usize,
+        Language: language::Language<REPETITIONS>,
+    >(
+        prover_language_public_parameters: &Language::PublicParameters,
+        verifier_language_public_parameters: &Language::PublicParameters,
+        batch_size: usize,
+        rng: &mut impl CryptoRngCore,
+    ) {
+        let witnesses = sample_witnesses::<REPETITIONS, Language>(
+            verifier_language_public_parameters,
+            batch_size,
+            rng,
+        );
+
+        let (proof, statements) = generate_valid_proof::<REPETITIONS, Language>(
+            prover_language_public_parameters,
+            witnesses,
+            rng,
+        );
+
+        assert!(
+            matches!(
+                proof
+                    .verify(
+                        &PhantomData,
+                        verifier_language_public_parameters,
+                        statements,
+                    )
+                    .err()
+                    .unwrap(),
+                Error::Proof(proof::Error::ProofVerification)
+            ),
+            "proof over wrong public parameters shouldn't pass verification"
+        );
+    }
+
+    fn setup_partial_transcript<
+        const REPETITIONS: usize,
+        Language: language::Language<REPETITIONS>,
+        ProtocolContext: Serialize,
+    >(
+        language_name: bool,
+        protocol_context: Option<ProtocolContext>,
+        language_public_parameters: Option<Language::PublicParameters>,
+        statements: Option<Vec<group::Value<Language::StatementSpaceGroupElement>>>,
+        statement_masks_values: Option<
+            [group::Value<Language::StatementSpaceGroupElement>; REPETITIONS],
+        >,
+    ) -> Transcript {
+        let mut transcript = if language_name {
+            Transcript::new(Language::NAME.as_bytes())
+        } else {
+            Transcript::new("".as_bytes())
+        };
+
+        if let Some(protocol_context) = protocol_context {
+            transcript
+                .serialize_to_transcript_as_json(b"protocol context", &protocol_context)
+                .unwrap()
+        }
+
+        language_public_parameters.map(|language_public_parameters| {
+            transcript
+                .serialize_to_transcript_as_json(
+                    b"language public parameters",
+                    &language_public_parameters,
+                )
+                .unwrap();
+
+            transcript
+                .serialize_to_transcript_as_json(
+                    b"witness space public parameters",
+                    &language_public_parameters.witness_space_public_parameters(),
+                )
+                .unwrap();
+
+            transcript.serialize_to_transcript_as_json(
+                b"statement space public parameters",
+                &language_public_parameters.statement_space_public_parameters(),
+            )
+        });
+
+        if let Some(statements) = statements {
+            statements.iter().for_each(|statement| {
+                transcript
+                    .serialize_to_transcript_as_json(b"statement value", &statement)
+                    .unwrap()
+            })
+        }
+
+        if let Some(statement_masks) = statement_masks_values {
+            statement_masks.iter().for_each(|statement_mask| {
+                transcript
+                    .serialize_to_transcript_as_json(b"statement mask value", &statement_mask)
+                    .unwrap()
+            })
+        }
+
+        transcript
+    }
+
+    /// Test weak Fiat-Shamir attacks.
+    pub fn proof_with_incomplete_transcript_fails<
+        const REPETITIONS: usize,
+        Language: language::Language<REPETITIONS>,
+    >(
+        language_public_parameters: &Language::PublicParameters,
+        batch_size: usize,
+        rng: &mut impl CryptoRngCore,
+    ) {
+        let witnesses =
+            sample_witnesses::<REPETITIONS, Language>(language_public_parameters, batch_size, rng);
+        let protocol_context = "valid protocol context".to_string();
+        let (proof, statements) = Proof::<REPETITIONS, Language, String>::prove(
+            &protocol_context,
+            language_public_parameters,
+            witnesses,
+            rng,
+        )
+        .unwrap();
+
+        let statement_values: Vec<group::Value<Language::StatementSpaceGroupElement>> = statements
+            .iter()
+            .map(|statement| statement.value())
+            .collect();
+
+        assert!(
+            proof
+                .verify_with_transcript(
+                    &mut setup_partial_transcript::<REPETITIONS, Language, String>(
+                        true,
+                        Some(protocol_context.clone()),
+                        Some(language_public_parameters.clone()),
+                        Some(statement_values.clone()),
+                        Some(proof.statement_masks),
+                    ),
+                    language_public_parameters,
+                    statements.clone()
+                )
+                .is_ok(),
+            "proofs with complete transcripts should verify"
+        );
+
+        assert!(
+            matches!(
+                proof
+                    .verify_with_transcript(
+                        &mut setup_partial_transcript::<REPETITIONS, Language, String>(
+                            false,
+                            Some(protocol_context.clone()),
+                            Some(language_public_parameters.clone()),
+                            Some(statement_values.clone()),
+                            Some(proof.statement_masks),
+                        ),
+                        language_public_parameters,
+                        statements.clone()
+                    )
+                    .err()
+                    .unwrap(),
+                Error::Proof(proof::Error::ProofVerification),
+            ),
+            "proofs with incomplete transcripts (missing language name) should fail"
+        );
+
+        assert!(
+            matches!(
+                proof
+                    .verify_with_transcript(
+                        &mut setup_partial_transcript::<REPETITIONS, Language, String>(
+                            true,
+                            None,
+                            Some(language_public_parameters.clone()),
+                            Some(statement_values.clone()),
+                            Some(proof.statement_masks),
+                        ),
+                        language_public_parameters,
+                        statements.clone()
+                    )
+                    .err()
+                    .unwrap(),
+                Error::Proof(proof::Error::ProofVerification),
+            ),
+            "proofs with incomplete transcripts (missing protocol context) should fail"
+        );
+
+        assert!(
+            matches!(
+                proof
+                    .verify_with_transcript(
+                        &mut setup_partial_transcript::<REPETITIONS, Language, String>(
+                            true,
+                            Some(protocol_context.clone()),
+                            None,
+                            Some(statement_values.clone()),
+                            Some(proof.statement_masks),
+                        ),
+                        language_public_parameters,
+                        statements.clone()
+                    )
+                    .err()
+                    .unwrap(),
+                Error::Proof(proof::Error::ProofVerification),
+            ),
+            "proofs with incomplete transcripts (missing public parameters) should fail"
+        );
+
+        assert!(
+            matches!(
+                proof
+                    .verify_with_transcript(
+                        &mut setup_partial_transcript::<REPETITIONS, Language, String>(
+                            true,
+                            Some(protocol_context.clone()),
+                            Some(language_public_parameters.clone()),
+                            None,
+                            Some(proof.statement_masks),
+                        ),
+                        language_public_parameters,
+                        statements.clone()
+                    )
+                    .err()
+                    .unwrap(),
+                Error::Proof(proof::Error::ProofVerification),
+            ),
+            "proofs with incomplete transcripts (missing statements) should fail"
+        );
+
+        assert!(
+            matches!(
+                proof
+                    .verify_with_transcript(
+                        &mut setup_partial_transcript::<REPETITIONS, Language, String>(
+                            true,
+                            Some(protocol_context.clone()),
+                            Some(language_public_parameters.clone()),
+                            Some(statement_values.clone()),
+                            None,
+                        ),
+                        language_public_parameters,
+                        statements.clone()
+                    )
+                    .err()
+                    .unwrap(),
+                Error::Proof(proof::Error::ProofVerification),
+            ),
+            "proofs with incomplete transcripts (missing statement masks) should fail"
+        );
+    }
+}
