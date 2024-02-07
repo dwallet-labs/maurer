@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 pub use language::Language;
+pub use proof::Proof;
 
 pub mod language;
 mod proof;
