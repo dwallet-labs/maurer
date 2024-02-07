@@ -955,8 +955,11 @@ mod benches {
         g.sample_size(10);
 
         for batch_size in [1, 10, 100, 1000] {
-            let witnesses =
-                sample_witnesses::<REPETITIONS, Language>(&language_public_parameters, batch_size);
+            let witnesses = sample_witnesses::<REPETITIONS, Language>(
+                &language_public_parameters,
+                batch_size,
+                &mut OsRng,
+            );
 
             let statements: Result<Vec<_>> = witnesses
                 .iter()
