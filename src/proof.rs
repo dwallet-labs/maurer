@@ -36,9 +36,9 @@ pub struct Proof<
     ProtocolContext: Clone,
 > {
     #[serde(with = "group::helpers::const_generic_array_serialization")]
-    pub(super) statement_masks: [StatementSpaceValue<REPETITIONS, Language>; REPETITIONS],
+    pub statement_masks: [StatementSpaceValue<REPETITIONS, Language>; REPETITIONS],
     #[serde(with = "group::helpers::const_generic_array_serialization")]
-    pub(super) responses: [WitnessSpaceValue<REPETITIONS, Language>; REPETITIONS],
+    pub responses: [WitnessSpaceValue<REPETITIONS, Language>; REPETITIONS],
 
     _protocol_context_choice: PhantomData<ProtocolContext>,
 }
@@ -147,17 +147,16 @@ impl<
 
         let batch_size = witnesses.len();
 
-        let statement_masks_values = statement_masks
-            .clone()
-            .map(|statement_mask| statement_mask.value());
+        let statement_masks_values =
+            Language::StatementSpaceGroupElement::batch_normalize_const_generic(statement_masks);
+
+        let statements_values =
+            Language::StatementSpaceGroupElement::batch_normalize(statements.clone());
 
         let mut transcript = Self::setup_transcript(
             protocol_context,
             language_public_parameters,
-            statements
-                .iter()
-                .map(|statement| statement.value())
-                .collect(),
+            statements_values,
             &statement_masks_values,
         )?;
 
@@ -165,39 +164,40 @@ impl<
             Self::compute_challenges(batch_size, &mut transcript);
 
         let challenge_bit_size = Language::challenge_bits()?;
-        let responses = randomizers
-            .into_iter()
-            .zip(challenges)
-            .map(|(randomizer, challenges)| {
-                witnesses
-                    .clone()
-                    .into_iter()
-                    .zip(challenges)
-                    .filter_map(|(witness, challenge)| {
-                        if challenge_bit_size == 1 {
-                            // A special case that needs special caring.
-                            if challenge == ComputationalSecuritySizedNumber::ZERO {
-                                None
+        let responses = Language::WitnessSpaceGroupElement::batch_normalize_const_generic(
+            randomizers
+                .into_iter()
+                .zip(challenges)
+                .map(|(randomizer, challenges)| {
+                    witnesses
+                        .clone()
+                        .into_iter()
+                        .zip(challenges)
+                        .filter_map(|(witness, challenge)| {
+                            if challenge_bit_size == 1 {
+                                // A special case that needs special caring.
+                                if challenge == ComputationalSecuritySizedNumber::ZERO {
+                                    None
+                                } else {
+                                    Some(witness)
+                                }
                             } else {
-                                Some(witness)
+                                // Using the "small exponents" method for batching.
+                                Some(witness.scalar_mul_bounded(&challenge, challenge_bit_size))
                             }
-                        } else {
-                            // Using the "small exponents" method for batching.
-                            Some(witness.scalar_mul_bounded(&challenge, challenge_bit_size))
-                        }
-                    })
-                    .reduce(|a, b| a + b)
-                    .map_or(
-                        randomizer.clone(),
-                        |witnesses_and_challenges_linear_combination| {
-                            randomizer + witnesses_and_challenges_linear_combination
-                        },
-                    )
-                    .value()
-            })
-            .collect::<Vec<_>>()
-            .try_into()
-            .map_err(|_| Error::InternalError)?;
+                        })
+                        .reduce(|a, b| a + b)
+                        .map_or(
+                            randomizer.clone(),
+                            |witnesses_and_challenges_linear_combination| {
+                                randomizer + witnesses_and_challenges_linear_combination
+                            },
+                        )
+                })
+                .collect::<Vec<_>>()
+                .try_into()
+                .map_err(|_| Error::InternalError)?,
+        );
 
         Ok(Self::new(statement_masks_values, responses))
     }
@@ -213,10 +213,7 @@ impl<
         let mut transcript = Self::setup_transcript(
             protocol_context,
             language_public_parameters,
-            statements
-                .iter()
-                .map(|statement| statement.value())
-                .collect(),
+            Language::StatementSpaceGroupElement::batch_normalize(statements.clone()),
             &self.statement_masks,
         )?;
 
