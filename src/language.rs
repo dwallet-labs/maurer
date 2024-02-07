@@ -58,7 +58,7 @@ pub trait Language<
 
     /// A group homomorphism $\phi:\HH\to\GG$ from $(\HH_\pp, +)$, the witness space,
     /// to $(\GG_\pp,\cdot)$, the statement space.
-    ///t
+    ///
     /// The name of this method, `homomorphose` is inspired by the wonderful book
     /// "Gödel, Escher, Bach: An Eternal Golden Braid", by Douglas R. Hofstadter, and specifically,
     /// Escher's painting ["Metamorphosis II"](https://www.digitalcommonwealth.org/search/commonwealth:ww72cb78j), 

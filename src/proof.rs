@@ -401,9 +401,6 @@ impl<
 pub(super) mod test_helpers {
     use std::marker::PhantomData;
 
-    use criterion::measurement::{Measurement, WallTime};
-    use rand_core::OsRng;
-
     use super::*;
     use crate::test_helpers::{sample_witness, sample_witnesses};
 
