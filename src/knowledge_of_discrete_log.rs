@@ -310,7 +310,9 @@ pub(crate) mod benches {
             &language_public_parameters,
             None,
             false,
+            None,
         );
+
         test_helpers::benchmark_aggregation::<SOUND_PROOFS_REPETITIONS, Lang>(
             &language_public_parameters,
             None,

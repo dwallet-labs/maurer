@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 pub use language::Language;
-<<<<<<<<< Temporary merge branch 1
-pub use proof::{BIT_SOUNDNESS_PROOFS_REPETITIONS, Proof, SOUND_PROOFS_REPETITIONS};
+pub use proof::{Proof, BIT_SOUNDNESS_PROOFS_REPETITIONS, SOUND_PROOFS_REPETITIONS};
 
 pub mod aggregation;
 pub mod knowledge_of_discrete_log;
