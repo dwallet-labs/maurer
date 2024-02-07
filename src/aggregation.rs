@@ -36,7 +36,7 @@ fn process_incoming_messages<T>(
     let other_provers: HashSet<_> = provers.into_iter().filter(|pid| *pid != party_id).collect();
 
     let mut unresponsive_parties: Vec<PartyID> = other_provers
-        .symmetric_difference(&current_round_party_ids)
+        .difference(&current_round_party_ids)
         .cloned()
         .collect();
 
