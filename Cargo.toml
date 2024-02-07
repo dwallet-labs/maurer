@@ -10,10 +10,9 @@ merlin = { version = "3", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 group = { git = "https://github.com/dwallet-labs/group.git" }
-proof = { git = "https://github.com/dwallet-labs/proof.git", branch = "aggregation" }
+proof = { git = "https://github.com/dwallet-labs/proof.git" }
 thiserror = "1.0"
 
-# For benchmarking
 criterion = { version = "0.5", features = ["html_reports"], optional = true }
 rand_core = { version = "0.6", features = ["std"], optional = true }
 rstest = { version = "0.18", optional = true }
@@ -22,11 +21,5 @@ rstest = { version = "0.18", optional = true }
 rand_core = { version = "0.6", features = ["std"] }
 
 [features]
-# This feature is for internal-use only (for benchmarking) and exists due to limitations of benchmarking non-public functions in Rust.
-# There will be no SemVer support for this feature.
-benchmarking = ["dep:criterion", "dep:rand_core", "dep:rstest"]
-
-[[bench]]
-name = "benches"
-harness = false
-
+test_helpers = ["dep:criterion", "dep:rand_core", "dep:rstest", "proof/test_helpers"]
+benchmarking = ["test_helpers"]
