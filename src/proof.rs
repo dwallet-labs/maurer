@@ -239,7 +239,7 @@ impl<
         self.verify_inner(challenges, language_public_parameters, statements)
     }
 
-    pub(crate) fn verify_inner(
+    fn verify_inner(
         &self,
         challenges: [Vec<ComputationalSecuritySizedNumber>; REPETITIONS],
         language_public_parameters: &Language::PublicParameters,
