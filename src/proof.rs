@@ -503,7 +503,7 @@ pub(super) mod test_helpers {
                     .unwrap(),
                 Error::Proof(proof::Error::ProofVerification)
             ),
-            "valid proof shouldn't pass verification against wrong statements"
+            "valid proof shouldn't verify against wrong statements"
         );
 
         let mut invalid_proof = valid_proof.clone();
