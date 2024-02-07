@@ -401,6 +401,9 @@ impl<
 pub(super) mod test_helpers {
     use std::marker::PhantomData;
 
+    use criterion::measurement::{Measurement, WallTime};
+    use rand_core::OsRng;
+
     use super::*;
     use crate::test_helpers::{sample_witness, sample_witnesses};
 
@@ -832,5 +835,97 @@ pub(super) mod test_helpers {
             ),
             "proofs with incomplete transcripts (missing statement masks) should fail"
         );
+    }
+
+    pub fn benchmark_proof<const REPETITIONS: usize, Language: language::Language<REPETITIONS>>(
+        language_public_parameters: &Language::PublicParameters,
+        extra_description: Option<String>,
+        as_millis: bool,
+        batch_sizes: Option<Vec<usize>>,
+    ) {
+        let measurement = WallTime;
+
+        let timestamp = if as_millis { "ms" } else { "µs" };
+        println!(
+            "\nLanguage Name, Repetitions, Extra Description, Batch Size, Batch Normalize Time (µs), Setup Transcript Time (µs), Prove Time ({timestamp}), Verification Time ({timestamp})",
+        );
+
+        for batch_size in batch_sizes
+            .unwrap_or(vec![1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024])
+            .into_iter()
+        {
+            let witnesses = sample_witnesses::<REPETITIONS, Language>(
+                language_public_parameters,
+                batch_size,
+                &mut OsRng,
+            );
+
+            let statements: Result<Vec<_>> = witnesses
+                .iter()
+                .map(|witness| Language::homomorphose(witness, language_public_parameters))
+                .collect();
+
+            let statements = statements.unwrap();
+
+            let now = measurement.start();
+            criterion::black_box(Language::StatementSpaceGroupElement::batch_normalize(
+                statements.clone(),
+            ));
+            let normalize_time = measurement.end(now);
+
+            let statements_values: Vec<_> = statements.iter().map(|x| x.value()).collect();
+
+            let now = measurement.start();
+            criterion::black_box(
+                Proof::<REPETITIONS, Language, PhantomData<()>>::setup_transcript(
+                    &PhantomData,
+                    language_public_parameters,
+                    statements_values.clone(),
+                    // just a stub value as the value doesn't affect the benchmarking of
+                    // this function
+                    &[*statements_values.first().unwrap(); REPETITIONS],
+                )
+                .unwrap(),
+            );
+            let setup_transcript_time = measurement.end(now);
+
+            let now = measurement.start();
+            let proof = Proof::<REPETITIONS, Language, PhantomData<()>>::prove_with_statements(
+                &PhantomData,
+                language_public_parameters,
+                witnesses.clone(),
+                statements.clone(),
+                &mut OsRng,
+            )
+            .unwrap();
+            let prove_time = measurement.end(now);
+
+            let now = measurement.start();
+
+            proof
+                .verify(&PhantomData, language_public_parameters, statements.clone())
+                .unwrap();
+
+            let verify_time = measurement.end(now);
+
+            println!(
+                "{}, {}, {}, {batch_size}, {:?}, {:?}, {:?}, {:?}",
+                Language::NAME,
+                REPETITIONS,
+                extra_description.clone().unwrap_or("".to_string()),
+                normalize_time.as_micros(),
+                setup_transcript_time.as_micros(),
+                if as_millis {
+                    prove_time.as_millis()
+                } else {
+                    prove_time.as_micros()
+                },
+                if as_millis {
+                    verify_time.as_millis()
+                } else {
+                    verify_time.as_micros()
+                },
+            );
+        }
     }
 }

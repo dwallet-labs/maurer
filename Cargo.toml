@@ -24,3 +24,6 @@ rand_core = { version = "0.6", features = ["std"] }
 test_helpers = ["dep:criterion", "dep:rand_core", "dep:rstest", "proof/test_helpers"]
 benchmarking = ["test_helpers"]
 
+[[bench]]
+name = "benches"
+harness = false
