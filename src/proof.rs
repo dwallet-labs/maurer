@@ -517,7 +517,7 @@ pub(super) mod test_helpers {
                     .unwrap(),
                 Error::Proof(proof::Error::ProofVerification)
             ),
-            "proof with a wrong response shouldn't be verified"
+            "proof with a wrong response shouldn't pass verification"
         );
 
         let mut invalid_proof = valid_proof.clone();
@@ -531,7 +531,7 @@ pub(super) mod test_helpers {
                     .unwrap(),
                 Error::Proof(proof::Error::ProofVerification)
             ),
-            "proof with a neutral statement_mask shouldn't verify"
+            "proof with a neutral statement_mask shouldn't pass verification"
         );
 
         let mut invalid_proof = valid_proof.clone();
@@ -545,7 +545,7 @@ pub(super) mod test_helpers {
                     .unwrap(),
                 Error::Proof(proof::Error::ProofVerification)
             ),
-            "proof with a neutral response shouldn't be verified"
+            "proof with a neutral response shouldn't pass verification"
         );
 
         if let Some(invalid_statement_space_value) = invalid_statement_space_value {
@@ -620,7 +620,7 @@ pub(super) mod test_helpers {
                     .unwrap(),
                 Error::Proof(proof::Error::ProofVerification)
             ),
-            "proof over wrong public parameters shouldn't verify"
+            "proof over wrong public parameters shouldn't pass verification"
         );
     }
 
@@ -841,6 +841,7 @@ pub(super) mod test_helpers {
         language_public_parameters: &Language::PublicParameters,
         extra_description: Option<String>,
         as_millis: bool,
+        batch_sizes: Option<Vec<usize>>,
     ) {
         let measurement = WallTime;
 
@@ -849,7 +850,10 @@ pub(super) mod test_helpers {
             "\nLanguage Name, Repetitions, Extra Description, Batch Size, Batch Normalize Time (µs), Setup Transcript Time (µs), Prove Time ({timestamp}), Verification Time ({timestamp})",
         );
 
-        for batch_size in [1, 10, 100, 1000, 10000] {
+        for batch_size in batch_sizes
+            .unwrap_or(vec![1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024])
+            .into_iter()
+        {
             let witnesses = sample_witnesses::<REPETITIONS, Language>(
                 language_public_parameters,
                 batch_size,
@@ -864,7 +868,9 @@ pub(super) mod test_helpers {
             let statements = statements.unwrap();
 
             let now = measurement.start();
-            criterion::black_box(statements.iter().map(|x| x.value()).collect::<Vec<_>>());
+            criterion::black_box(Language::StatementSpaceGroupElement::batch_normalize(
+                statements.clone(),
+            ));
             let normalize_time = measurement.end(now);
 
             let statements_values: Vec<_> = statements.iter().map(|x| x.value()).collect();
