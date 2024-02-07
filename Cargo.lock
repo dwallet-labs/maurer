@@ -149,6 +149,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "702fc72eb24e5a1e48ce58027a675bc24edd52096d5397d4aea7c6dd9eca0bd1"
 
 [[package]]
+name = "commitment"
+version = "0.1.0"
+source = "git+https://github.com/dwallet-labs/commitment.git#27e138737766215b644df49457e5690f3f00410c"
+dependencies = [
+ "crypto-bigint",
+ "group 0.1.0",
+ "merlin",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "const-oid"
 version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -316,7 +328,6 @@ dependencies = [
  "rfc6979",
  "serdect",
  "signature",
- "spki",
 ]
 
 [[package]]
@@ -491,22 +502,6 @@ checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
 [[package]]
 name = "group"
 version = "0.1.0"
-source = "git+https://github.com/dwallet-labs/group.git?branch=batch_normalize#ef07c927c9b98a64a9a5dea0bf7471926359a4f2"
-dependencies = [
- "crypto-bigint",
- "curve25519-dalek-ng",
- "k256",
- "serde",
- "sha3 0.10.8",
- "sha3 0.9.1",
- "subtle",
- "subtle-ng",
- "thiserror",
-]
-
-[[package]]
-name = "group"
-version = "0.1.0"
 source = "git+https://github.com/dwallet-labs/group.git#bdfa95a3fc8633d01252b87c791ff14a51e73ec6"
 dependencies = [
  "crypto-bigint",
@@ -638,7 +633,7 @@ version = "0.1.0"
 dependencies = [
  "criterion",
  "crypto-bigint",
- "group 0.1.0 (git+https://github.com/dwallet-labs/group.git?branch=batch_normalize)",
+ "group 0.1.0",
  "merlin",
  "proof",
  "rand_core",
@@ -771,11 +766,12 @@ dependencies = [
 [[package]]
 name = "proof"
 version = "0.1.0"
-source = "git+https://github.com/dwallet-labs/proof.git?branch=aggregation-tests#5126cfca5b500cf3e39840b5e6bdbdaf7de618c1"
+source = "git+https://github.com/dwallet-labs/proof.git#0d0a81de7a5233c26aa84853c7eaffd5a99c8e2c"
 dependencies = [
+ "commitment",
  "criterion",
  "crypto-bigint",
- "group 0.1.0 (git+https://github.com/dwallet-labs/group.git)",
+ "group 0.1.0",
  "merlin",
  "rand",
  "rand_core",
