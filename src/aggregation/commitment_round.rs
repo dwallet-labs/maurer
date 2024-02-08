@@ -1,6 +1,10 @@
 // Author: dWallet Labs, Ltd.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
+use crate::aggregation::decommitment_round;
+use crate::aggregation::decommitment_round::Decommitment;
+use crate::{language, Proof};
+use crate::{Error, Result};
 use commitment::Commitment;
 use crypto_bigint::rand_core::CryptoRngCore;
 use crypto_bigint::Random;
@@ -9,10 +13,6 @@ use proof::aggregation;
 use proof::aggregation::CommitmentRoundParty;
 use serde::Serialize;
 use std::collections::HashSet;
-use crate::{language, Proof};
-use crate::{Error, Result};
-use crate::aggregation::decommitment_round;
-use crate::aggregation::decommitment_round::Decommitment;
 
 #[cfg_attr(feature = "test_helpers", derive(Clone))]
 pub struct Party<
@@ -36,11 +36,11 @@ pub struct Party<
 }
 
 impl<
-    const REPETITIONS: usize,
-    Language: language::Language<REPETITIONS>,
-    ProtocolContext: Clone + Serialize,
-> CommitmentRoundParty<super::Output<REPETITIONS, Language, ProtocolContext>>
-for Party<REPETITIONS, Language, ProtocolContext>
+        const REPETITIONS: usize,
+        Language: language::Language<REPETITIONS>,
+        ProtocolContext: Clone + Serialize,
+    > CommitmentRoundParty<super::Output<REPETITIONS, Language, ProtocolContext>>
+    for Party<REPETITIONS, Language, ProtocolContext>
 {
     type Error = Error;
     type Commitment = Commitment;
@@ -52,7 +52,9 @@ for Party<REPETITIONS, Language, ProtocolContext>
         rng: &mut impl CryptoRngCore,
     ) -> Result<(Self::Commitment, Self::DecommitmentRoundParty)> {
         if !self.provers.contains(&self.party_id) {
-            return Err(Error::Aggregation(aggregation::Error::NonParticipatingParty));
+            return Err(Error::Aggregation(
+                aggregation::Error::NonParticipatingParty,
+            ));
         }
 
         let statements: Result<Vec<Language::StatementSpaceGroupElement>> = self
@@ -65,10 +67,12 @@ for Party<REPETITIONS, Language, ProtocolContext>
         let commitment_randomness = ComputationalSecuritySizedNumber::random(rng);
 
         let statement_masks_values =
-            Language::StatementSpaceGroupElement::batch_normalize_const_generic(self
-                .statement_masks.clone());
+            Language::StatementSpaceGroupElement::batch_normalize_const_generic(
+                self.statement_masks.clone(),
+            );
 
-        let statements_values = Language::StatementSpaceGroupElement::batch_normalize(statements.clone());
+        let statements_values =
+            Language::StatementSpaceGroupElement::batch_normalize(statements.clone());
 
         let mut transcript = Proof::<REPETITIONS, Language, ProtocolContext>::setup_transcript(
             &self.protocol_context,
@@ -77,7 +81,12 @@ for Party<REPETITIONS, Language, ProtocolContext>
             &statement_masks_values,
         )?;
 
-        let commitment = Commitment::commit_transcript(self.party_id, "maurer proof aggregation - commitment round commitment".to_string(), &mut transcript, &commitment_randomness);
+        let commitment = Commitment::commit_transcript(
+            self.party_id,
+            COMMITMENT_LABEL.to_string(),
+            &mut transcript,
+            &commitment_randomness,
+        );
 
         let decommitment = Decommitment::<REPETITIONS, Language> {
             statements: statements_values,
@@ -103,10 +112,10 @@ for Party<REPETITIONS, Language, ProtocolContext>
 }
 
 impl<
-    const REPETITIONS: usize,
-    Language: language::Language<REPETITIONS>,
-    ProtocolContext: Clone + Serialize,
-> Party<REPETITIONS, Language, ProtocolContext>
+        const REPETITIONS: usize,
+        Language: language::Language<REPETITIONS>,
+        ProtocolContext: Clone + Serialize,
+    > Party<REPETITIONS, Language, ProtocolContext>
 {
     pub fn new_session(
         party_id: PartyID,
@@ -135,3 +144,5 @@ impl<
         })
     }
 }
+
+pub(super) const COMMITMENT_LABEL: &str = "maurer proof aggregation - commitment round commitment";
