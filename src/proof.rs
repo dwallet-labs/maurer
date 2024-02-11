@@ -847,7 +847,7 @@ pub(super) mod test_helpers {
 
         let timestamp = if as_millis { "ms" } else { "µs" };
         println!(
-            "\nLanguage Name, Repetitions, Extra Description, Batch Size, Batch Normalize Time (µs), Setup Transcript Time (µs), Prove Time ({timestamp}), Verification Time ({timestamp})",
+            "\nLanguage Name, Repetitions, Extra Description, Batch Size, Statement Computation Time ({timestamp}), Batch Normalize Time (µs), Setup Transcript Time (µs), Prove Time ({timestamp}), Verification Time ({timestamp})",
         );
 
         for batch_size in batch_sizes
@@ -860,12 +860,14 @@ pub(super) mod test_helpers {
                 &mut OsRng,
             );
 
+            let now = measurement.start();
             let statements: Result<Vec<_>> = witnesses
                 .iter()
                 .map(|witness| Language::homomorphose(witness, language_public_parameters))
                 .collect();
 
             let statements = statements.unwrap();
+            let statements_time = measurement.end(now);
 
             let now = measurement.start();
             criterion::black_box(Language::StatementSpaceGroupElement::batch_normalize(
@@ -890,11 +892,10 @@ pub(super) mod test_helpers {
             let setup_transcript_time = measurement.end(now);
 
             let now = measurement.start();
-            let proof = Proof::<REPETITIONS, Language, PhantomData<()>>::prove_with_statements(
+            let (proof, _) = Proof::<REPETITIONS, Language, PhantomData<()>>::prove(
                 &PhantomData,
                 language_public_parameters,
                 witnesses.clone(),
-                statements.clone(),
                 &mut OsRng,
             )
             .unwrap();
@@ -909,10 +910,15 @@ pub(super) mod test_helpers {
             let verify_time = measurement.end(now);
 
             println!(
-                "{}, {}, {}, {batch_size}, {:?}, {:?}, {:?}, {:?}",
+                "{}, {}, {}, {batch_size}, {:?}, {:?}, {:?}, {:?}, {:?}",
                 Language::NAME,
                 REPETITIONS,
                 extra_description.clone().unwrap_or("".to_string()),
+                if as_millis {
+                    statements_time.as_millis()
+                } else {
+                    statements_time.as_micros()
+                },
                 normalize_time.as_micros(),
                 setup_transcript_time.as_micros(),
                 if as_millis {
