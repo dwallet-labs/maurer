@@ -6,14 +6,14 @@ use std::collections::{HashMap, HashSet};
 use crypto_bigint::rand_core::CryptoRngCore;
 use group::helpers::FlatMapResults;
 use group::{GroupElement, PartyID};
-use proof::aggregation::ProofShareRoundParty;
+use proof::aggregation::{process_incoming_messages, ProofShareRoundParty};
 use serde::{Deserialize, Serialize};
 
 use commitment::Commitment;
 
 use crate::aggregation::commitment_round::COMMITMENT_LABEL;
 use crate::aggregation::decommitment_round::Decommitment;
-use crate::aggregation::{process_incoming_messages, proof_aggregation_round};
+use crate::aggregation::proof_aggregation_round;
 use crate::language::GroupsPublicParametersAccessors;
 use crate::language::WitnessSpaceValue;
 use crate::Proof;
@@ -66,7 +66,7 @@ impl<
         _rng: &mut impl CryptoRngCore,
     ) -> Result<(Self::ProofShare, Self::ProofAggregationRoundParty)> {
         let decommitments =
-            process_incoming_messages(self.party_id, self.provers.clone(), decommitments)?;
+            process_incoming_messages(self.party_id, self.provers.clone(), decommitments, true)?;
 
         let reconstructed_commitments: Result<HashMap<PartyID, Commitment>> = decommitments
             .iter()
@@ -116,8 +116,7 @@ impl<
                         .map(|statement_mask| {
                             Language::StatementSpaceGroupElement::new(
                                 statement_mask,
-                                &self
-                                    .language_public_parameters
+                                self.language_public_parameters
                                     .statement_space_public_parameters(),
                             )
                         })
@@ -160,20 +159,18 @@ impl<
             )?;
         }
 
-        let aggregated_statement_masks = statement_masks.into_values().fold(
-            Ok(self.statement_masks),
+        let aggregated_statement_masks = statement_masks.into_values().try_fold(
+            self.statement_masks,
             |aggregated_statement_masks, statement_masks| {
-                aggregated_statement_masks.and_then(|aggregated_statement_masks| {
-                    aggregated_statement_masks
-                        .into_iter()
-                        .zip(statement_masks)
-                        .map(|(aggregated_statement_mask, statement_mask)| {
-                            aggregated_statement_mask + statement_mask
-                        })
-                        .collect::<Vec<_>>()
-                        .try_into()
-                        .map_err(|_| Error::InternalError)
-                })
+                aggregated_statement_masks
+                    .into_iter()
+                    .zip(statement_masks)
+                    .map(|(aggregated_statement_mask, statement_mask)| {
+                        aggregated_statement_mask + statement_mask
+                    })
+                    .collect::<Vec<_>>()
+                    .try_into()
+                    .map_err(|_| Error::InternalError)
             },
         )?;
 
@@ -189,8 +186,7 @@ impl<
                         .map(|statement_value| {
                             Language::StatementSpaceGroupElement::new(
                                 statement_value,
-                                &self
-                                    .language_public_parameters
+                                self.language_public_parameters
                                     .statement_space_public_parameters(),
                             )
                         })
@@ -246,8 +242,7 @@ impl<
             .map(|value| {
                 Language::WitnessSpaceGroupElement::new(
                     value,
-                    &self
-                        .language_public_parameters
+                    self.language_public_parameters
                         .witness_space_public_parameters(),
                 )
             })
