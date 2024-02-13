@@ -17,13 +17,13 @@ use crate::{Error, Proof, Result};
 
 #[cfg_attr(feature = "test_helpers", derive(Clone))]
 pub struct Party<
-    // Number of times this proof should be repeated to achieve sufficient security
+    // Number of times this proof should be repeated to achieve sufficient security.
     const REPETITIONS: usize,
-    // The language we are proving
+    // The language we are proving.
     Language: crate::Language<REPETITIONS>,
     // A struct used by the protocol using this proof,
     // used to provide extra necessary context that will parameterize the proof (and thus verifier
-    // code) and be inserted to the Fiat-Shamir transcript
+    // code) and be inserted to the Fiat-Shamir transcript.
     ProtocolContext: Clone,
 > {
     pub(super) party_id: PartyID,
@@ -97,26 +97,27 @@ impl<
                 .map(|(party_id, proof_share)| (party_id, proof_share.unwrap()))
                 .collect();
 
-        let responses = Language::WitnessSpaceGroupElement::batch_normalize_const_generic(
-            proof_shares.values().try_fold(
-                self.responses,
-                |aggregated_responses, proof_share| {
-                    aggregated_responses
-                        .into_iter()
-                        .zip(proof_share)
-                        .map(|(aggregated_response, response)| aggregated_response + response)
-                        .collect::<Vec<_>>()
-                        .try_into()
-                        .map_err(|_| Error::InternalError)
-                },
-            )?,
-        );
+        let aggregated_responses =
+            Language::WitnessSpaceGroupElement::batch_normalize_const_generic(
+                proof_shares.values().try_fold(
+                    self.responses,
+                    |aggregated_responses, proof_share| {
+                        aggregated_responses
+                            .into_iter()
+                            .zip(proof_share)
+                            .map(|(aggregated_response, response)| aggregated_response + response)
+                            .collect::<Vec<_>>()
+                            .try_into()
+                            .map_err(|_| Error::InternalError)
+                    },
+                )?,
+            );
 
         let aggregated_statement_masks =
             Language::StatementSpaceGroupElement::batch_normalize_const_generic(
                 self.aggregated_statement_masks,
             );
-        let aggregated_proof = Proof::new(aggregated_statement_masks, responses);
+        let aggregated_proof = Proof::new(aggregated_statement_masks, aggregated_responses);
         if aggregated_proof
             .verify(
                 &self.protocol_context,
