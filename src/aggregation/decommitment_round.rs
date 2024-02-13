@@ -5,12 +5,12 @@ use std::collections::{HashMap, HashSet};
 
 use crypto_bigint::rand_core::CryptoRngCore;
 use group::{ComputationalSecuritySizedNumber, PartyID};
-use proof::aggregation::DecommitmentRoundParty;
+use proof::aggregation::{process_incoming_messages, DecommitmentRoundParty};
 use serde::{Deserialize, Serialize};
 
 use commitment::Commitment;
 
-use crate::aggregation::{process_incoming_messages, proof_share_round};
+use crate::aggregation::proof_share_round;
 use crate::language;
 use crate::{Error, Result};
 
@@ -62,7 +62,7 @@ impl<
         _rng: &mut impl CryptoRngCore,
     ) -> Result<(Self::Decommitment, Self::ProofShareRoundParty)> {
         let commitments =
-            process_incoming_messages(self.party_id, self.provers.clone(), commitments)?;
+            process_incoming_messages(self.party_id, self.provers.clone(), commitments, true)?;
 
         let proof_share_round_party =
             proof_share_round::Party::<REPETITIONS, Language, ProtocolContext> {
