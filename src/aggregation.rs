@@ -7,6 +7,9 @@ use group::PartyID;
 
 use crate::{language, Proof};
 
+pub use decommitment_round::Decommitment;
+pub use proof_share_round::ProofShare;
+
 pub mod commitment_round;
 pub mod decommitment_round;
 pub mod proof_aggregation_round;

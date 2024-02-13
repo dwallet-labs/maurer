@@ -49,6 +49,7 @@ impl TryInto<::proof::aggregation::Error> for Error {
         }
     }
 }
+
 #[cfg(feature = "benchmarking")]
 criterion::criterion_group!(benches, empty_benchmark);
 
