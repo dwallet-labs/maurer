@@ -7,11 +7,11 @@ use crypto_bigint::rand_core::CryptoRngCore;
 use group::helpers::FlatMapResults;
 use group::PartyID;
 use group::{ComputationalSecuritySizedNumber, GroupElement};
-use proof::aggregation::ProofAggregationRoundParty;
+use proof::aggregation::{process_incoming_messages, ProofAggregationRoundParty};
 use serde::Serialize;
 
 use crate::aggregation::proof_share_round::ProofShare;
-use crate::aggregation::{process_incoming_messages, Output};
+use crate::aggregation::Output;
 use crate::language::GroupsPublicParametersAccessors;
 use crate::{Error, Proof, Result};
 
@@ -53,7 +53,8 @@ impl<
         proof_shares: HashMap<PartyID, Self::ProofShare>,
         _rng: &mut impl CryptoRngCore,
     ) -> Result<Output<REPETITIONS, Language, ProtocolContext>> {
-        let proof_shares = process_incoming_messages(self.party_id, self.provers, proof_shares)?;
+        let proof_shares =
+            process_incoming_messages(self.party_id, self.provers, proof_shares, true)?;
 
         let proof_shares: HashMap<
             PartyID,
@@ -98,20 +99,16 @@ impl<
 
         let aggregated_responses =
             Language::WitnessSpaceGroupElement::batch_normalize_const_generic(
-                proof_shares.values().fold(
-                    Ok(self.responses),
+                proof_shares.values().try_fold(
+                    self.responses,
                     |aggregated_responses, proof_share| {
-                        aggregated_responses.and_then(|aggregated_responses| {
-                            aggregated_responses
-                                .into_iter()
-                                .zip(proof_share)
-                                .map(|(aggregated_response, response)| {
-                                    aggregated_response + response
-                                })
-                                .collect::<Vec<_>>()
-                                .try_into()
-                                .map_err(|_| Error::InternalError)
-                        })
+                        aggregated_responses
+                            .into_iter()
+                            .zip(proof_share)
+                            .map(|(aggregated_response, response)| aggregated_response + response)
+                            .collect::<Vec<_>>()
+                            .try_into()
+                            .map_err(|_| Error::InternalError)
                     },
                 )?,
             );
