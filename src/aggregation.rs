@@ -3,7 +3,13 @@
 
 use crate::{language, Proof};
 
+pub use decommitment_round::Decommitment;
+pub use proof_share_round::ProofShare;
+
 pub mod commitment_round;
+pub mod decommitment_round;
+pub mod proof_aggregation_round;
+pub mod proof_share_round;
 
 pub type Output<const REPETITIONS: usize, Language, ProtocolContext> = (
     Proof<REPETITIONS, Language, ProtocolContext>,
