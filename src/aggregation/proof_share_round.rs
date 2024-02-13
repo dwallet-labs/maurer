@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use commitment::Commitment;
 
+use crate::aggregation::commitment_round::COMMITMENT_LABEL;
 use crate::aggregation::decommitment_round::Decommitment;
 use crate::aggregation::proof_aggregation_round;
 use crate::language::GroupsPublicParametersAccessors;
@@ -81,7 +82,7 @@ impl<
                         *party_id,
                         Commitment::commit_transcript(
                             *party_id,
-                            "maurer proof aggregation - commitment round commitment".to_string(),
+                            COMMITMENT_LABEL.to_string(),
                             &mut transcript,
                             &decommitment.commitment_randomness,
                         ),

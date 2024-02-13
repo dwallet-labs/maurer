@@ -16,13 +16,13 @@ use std::collections::HashSet;
 
 #[cfg_attr(feature = "test_helpers", derive(Clone))]
 pub struct Party<
-    // Number of times this proof should be repeated to achieve sufficient security
+    // Number of times this proof should be repeated to achieve sufficient security.
     const REPETITIONS: usize,
     // The language we are proving
     Language: language::Language<REPETITIONS>,
     // A struct used by the protocol using this proof,
     // used to provide extra necessary context that will parameterize the proof (and thus verifier
-    // code) and be inserted to the Fiat-Shamir transcript
+    // code) and be inserted to the Fiat-Shamir transcript.
     ProtocolContext: Clone,
 > {
     pub(crate) party_id: PartyID,
@@ -83,7 +83,7 @@ impl<
 
         let commitment = Commitment::commit_transcript(
             self.party_id,
-            "maurer proof aggregation - commitment round commitment".to_string(),
+            COMMITMENT_LABEL.to_string(),
             &mut transcript,
             &commitment_randomness,
         );
@@ -144,3 +144,5 @@ impl<
         })
     }
 }
+
+pub(super) const COMMITMENT_LABEL: &str = "maurer proof aggregation - commitment round commitment";
