@@ -25,14 +25,14 @@ pub struct Party<
     // code) and be inserted to the Fiat-Shamir transcript.
     ProtocolContext: Clone,
 > {
-    pub(crate) party_id: PartyID,
+    pub party_id: PartyID,
     // The set of parties ${P_i}$ participating in the proof aggregation protocol.
-    pub(crate) provers: HashSet<PartyID>,
-    pub(crate) language_public_parameters: Language::PublicParameters,
-    pub(crate) protocol_context: ProtocolContext,
-    pub(crate) witnesses: Vec<Language::WitnessSpaceGroupElement>,
-    pub(super) randomizers: [Language::WitnessSpaceGroupElement; REPETITIONS],
-    pub(super) statement_masks: [Language::StatementSpaceGroupElement; REPETITIONS],
+    pub provers: HashSet<PartyID>,
+    pub language_public_parameters: Language::PublicParameters,
+    pub protocol_context: ProtocolContext,
+    pub witnesses: Vec<Language::WitnessSpaceGroupElement>,
+    pub randomizers: [Language::WitnessSpaceGroupElement; REPETITIONS],
+    pub statement_masks: [Language::StatementSpaceGroupElement; REPETITIONS],
 }
 
 impl<

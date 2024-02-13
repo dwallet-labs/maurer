@@ -1,6 +1,7 @@
 # maurer
 
-Generic Maurer zero-knowledge proofs for any language $L = {(x, X) | X = \phi(x)}$ associated with a group homomorphism
+Generic Maurer zero-knowledge proofs for any language ${L = {(x, X) | X = \phi(x)}}$ associated with a group
+homomorphism
 $\phi(x + y) = \phi(x) + \phi(y)$.
 
 # Security
