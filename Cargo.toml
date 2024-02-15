@@ -23,7 +23,7 @@ rstest = { version = "0.18", optional = true }
 rand_core = { version = "0.6", features = ["std"] }
 
 [features]
-test_helpers = ["dep:criterion", "dep:rand_core", "dep:rstest", "proof/test_helpers"]
+test_helpers = ["dep:criterion", "dep:rand_core", "dep:getrandom", "dep:rstest", "proof/test_helpers"]
 benchmarking = ["test_helpers"]
 
 [[bench]]
