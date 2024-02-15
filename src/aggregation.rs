@@ -104,7 +104,7 @@ pub(super) mod test_helpers {
         let (_, commitment_round_parties) =
             setup::<REPETITIONS, Lang>(language_public_parameters, number_of_parties, batch_size);
 
-        let (_, _, _, _, _, (proof, statements)) =
+        let (.., (proof, statements)) =
             proof::aggregation::test_helpers::aggregates(commitment_round_parties);
 
         assert!(
