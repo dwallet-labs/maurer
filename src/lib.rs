@@ -4,6 +4,7 @@
 pub use language::Language;
 pub use proof::Proof;
 
+pub mod aggregation;
 pub mod language;
 mod proof;
 
@@ -19,6 +20,8 @@ pub enum Error {
     GroupInstantiation(#[from] group::Error),
     #[error("proof error")]
     Proof(#[from] ::proof::Error),
+    #[error("aggregation error")]
+    Aggregation(#[from] ::proof::aggregation::Error),
     #[error("unsupported repetitions: must be either 1 or 128")]
     UnsupportedRepetitions,
     #[error("invalid parameters")]
@@ -32,6 +35,16 @@ pub enum Error {
 /// Maurer result.
 pub type Result<T> = std::result::Result<T, Error>;
 
+impl TryInto<::proof::aggregation::Error> for Error {
+    type Error = Error;
+
+    fn try_into(self) -> std::result::Result<::proof::aggregation::Error, Self::Error> {
+        match self {
+            Error::Aggregation(e) => Ok(e),
+            e => Err(e),
+        }
+    }
+}
 #[cfg(feature = "benchmarking")]
 criterion::criterion_group!(benches, empty_benchmark);
 
