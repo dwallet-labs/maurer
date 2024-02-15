@@ -524,7 +524,7 @@ checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
 [[package]]
 name = "group"
 version = "0.1.0"
-source = "git+https://github.com/dwallet-labs/group.git#d1c1587a6109d1ddecd1f3b53742f7830cf691b2"
+source = "git+https://github.com/dwallet-labs/group.git#37bda3ea32bc3d7affabe43b0fed52b1fb5e2b51"
 dependencies = [
  "crypto-bigint",
  "curve25519-dalek-ng",
@@ -560,9 +560,9 @@ dependencies = [
 
 [[package]]
 name = "hermit-abi"
-version = "0.3.5"
+version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0c62115964e08cb8039170eb33c1d0e2388a256930279edca206fff675f82c3"
+checksum = "bd5256b483761cd23699d0da46cc6fd2ee3be420bbe6d020ae4a091e70b7e9fd"
 
 [[package]]
 name = "hmac"
@@ -783,7 +783,7 @@ dependencies = [
 [[package]]
 name = "proof"
 version = "0.1.0"
-source = "git+https://github.com/dwallet-labs/proof.git?branch=bp-aggregation#ceb90df65fc55a7d8762810652fa034bb9bab565"
+source = "git+https://github.com/dwallet-labs/proof.git?branch=bp-aggregation#6d66901f6fa15fa88caebebb6b9015cb7420d258"
 dependencies = [
  "bulletproofs",
  "commitment",
