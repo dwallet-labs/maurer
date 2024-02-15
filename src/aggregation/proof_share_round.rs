@@ -269,3 +269,12 @@ impl<
         Ok((proof_share, proof_aggregation_round_party))
     }
 }
+
+impl<const REPETITIONS: usize, Language: crate::Language<REPETITIONS>>
+    From<ProofShare<REPETITIONS, Language>>
+    for [WitnessSpaceValue<REPETITIONS, Language>; REPETITIONS]
+{
+    fn from(value: ProofShare<REPETITIONS, Language>) -> Self {
+        value.0
+    }
+}

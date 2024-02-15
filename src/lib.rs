@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 pub use language::Language;
-pub use proof::Proof;
+pub use proof::{Proof, BIT_SOUNDNESS_PROOFS_REPETITIONS, SOUND_PROOFS_REPETITIONS};
 
 pub mod aggregation;
 pub mod language;
@@ -10,7 +10,9 @@ mod proof;
 
 #[cfg(feature = "test_helpers")]
 pub mod test_helpers {
-    pub use crate::{language::test_helpers::*, proof::test_helpers::*};
+    pub use crate::aggregation::test_helpers::*;
+    pub use crate::language::test_helpers::*;
+    pub use crate::proof::test_helpers::*;
 }
 
 /// Maurer error.
@@ -24,6 +26,8 @@ pub enum Error {
     Aggregation(#[from] ::proof::aggregation::Error),
     #[error("unsupported repetitions: must be either 1 or 128")]
     UnsupportedRepetitions,
+    #[error("invalid public parameters")]
+    InvalidPublicParameters,
     #[error("invalid parameters")]
     InvalidParameters,
     #[error("serialization/deserialization error")]
@@ -45,6 +49,7 @@ impl TryInto<::proof::aggregation::Error> for Error {
         }
     }
 }
+
 #[cfg(feature = "benchmarking")]
 criterion::criterion_group!(benches, empty_benchmark);
 

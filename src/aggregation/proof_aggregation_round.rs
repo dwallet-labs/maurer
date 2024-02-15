@@ -32,7 +32,7 @@ pub struct Party<
     pub(super) protocol_context: ProtocolContext,
     pub(super) statement_masks:
         HashMap<PartyID, [group::Value<Language::StatementSpaceGroupElement>; REPETITIONS]>,
-    pub(super) statements: HashMap<PartyID, Vec<Language::StatementSpaceGroupElement>>,
+    pub statements: HashMap<PartyID, Vec<Language::StatementSpaceGroupElement>>,
     pub(super) aggregated_statements: Vec<Language::StatementSpaceGroupElement>,
     pub(super) aggregated_statement_masks: [Language::StatementSpaceGroupElement; REPETITIONS],
     pub(super) responses: [Language::WitnessSpaceGroupElement; REPETITIONS],
