@@ -16,7 +16,7 @@ thiserror = "1.0"
 
 criterion = { version = "0.5", features = ["html_reports"], optional = true }
 rand_core = { version = "0.6", features = ["std"], optional = true }
-getrandom = { version = "0.2", features = ["js"] }
+getrandom = { version = "0.2", features = ["js"], optional = true }
 rstest = { version = "0.18", optional = true }
 
 [dev-dependencies]
