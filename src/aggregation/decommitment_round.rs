@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 
 use crypto_bigint::rand_core::CryptoRngCore;
 use group::{ComputationalSecuritySizedNumber, PartyID};
-use proof::aggregation::DecommitmentRoundParty;
+use proof::aggregation::{process_incoming_messages, DecommitmentRoundParty};
 use serde::{Deserialize, Serialize};
 
 use commitment::Commitment;
@@ -23,7 +23,6 @@ pub struct Decommitment<const REPETITIONS: usize, Language: language::Language<R
 }
 
 #[cfg_attr(feature = "test_helpers", derive(Clone))]
-#[allow(dead_code)]
 pub struct Party<
     // Number of times this proof should be repeated to achieve sufficient security
     const REPETITIONS: usize,
@@ -59,9 +58,25 @@ impl<
 
     fn decommit_statements_and_statement_mask(
         self,
-        _commitments: HashMap<PartyID, Self::Commitment>,
+        commitments: HashMap<PartyID, Self::Commitment>,
         _rng: &mut impl CryptoRngCore,
     ) -> Result<(Self::Decommitment, Self::ProofShareRoundParty)> {
-        todo!()
+        let commitments =
+            process_incoming_messages(self.party_id, self.provers.clone(), commitments, true)?;
+
+        let proof_share_round_party =
+            proof_share_round::Party::<REPETITIONS, Language, ProtocolContext> {
+                party_id: self.party_id,
+                provers: self.provers,
+                language_public_parameters: self.language_public_parameters,
+                protocol_context: self.protocol_context,
+                witnesses: self.witnesses,
+                statements: self.statements,
+                randomizers: self.randomizers,
+                statement_masks: self.statement_masks,
+                commitments,
+            };
+
+        Ok((self.decommitment, proof_share_round_party))
     }
 }
