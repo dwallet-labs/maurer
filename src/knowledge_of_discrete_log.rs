@@ -317,6 +317,7 @@ pub(crate) mod benches {
             &language_public_parameters,
             None,
             false,
+            None,
         );
     }
 }
