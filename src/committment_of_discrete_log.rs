@@ -3,11 +3,11 @@
 use std::{marker::PhantomData, ops::Mul};
 
 use commitment::HomomorphicCommitmentScheme;
-use group::{BoundedGroupElement, CyclicGroupElement, Samplable, self_product};
+use group::{self_product, BoundedGroupElement, CyclicGroupElement, Samplable};
 use serde::{Deserialize, Serialize};
 
-use crate::{Result, SOUND_PROOFS_REPETITIONS};
 use crate::language::GroupsPublicParameters;
+use crate::{Result, SOUND_PROOFS_REPETITIONS};
 
 /// Commitment of Discrete Log Maurer Language
 ///
@@ -28,21 +28,21 @@ pub struct Language<const SCALAR_LIMBS: usize, Scalar, GroupElement, CommitmentS
 }
 
 impl<
-    const SCALAR_LIMBS: usize,
-    Scalar: BoundedGroupElement<SCALAR_LIMBS>
-    + Samplable
-    + Mul<GroupElement, Output=GroupElement>
-    + for<'r> Mul<&'r GroupElement, Output=GroupElement>
-    + Copy,
-    GroupElement: CyclicGroupElement,
-    CommitmentScheme: HomomorphicCommitmentScheme<
-        SCALAR_LIMBS,
-        MessageSpaceGroupElement=self_product::GroupElement<1, Scalar>,
-        RandomnessSpaceGroupElement=Scalar,
-        CommitmentSpaceGroupElement=GroupElement,
-    >,
-> crate::Language<SOUND_PROOFS_REPETITIONS>
-for Language<SCALAR_LIMBS, Scalar, GroupElement, CommitmentScheme>
+        const SCALAR_LIMBS: usize,
+        Scalar: BoundedGroupElement<SCALAR_LIMBS>
+            + Samplable
+            + Mul<GroupElement, Output = GroupElement>
+            + for<'r> Mul<&'r GroupElement, Output = GroupElement>
+            + Copy,
+        GroupElement: CyclicGroupElement,
+        CommitmentScheme: HomomorphicCommitmentScheme<
+            SCALAR_LIMBS,
+            MessageSpaceGroupElement = self_product::GroupElement<1, Scalar>,
+            RandomnessSpaceGroupElement = Scalar,
+            CommitmentSpaceGroupElement = GroupElement,
+        >,
+    > crate::Language<SOUND_PROOFS_REPETITIONS>
+    for Language<SCALAR_LIMBS, Scalar, GroupElement, CommitmentScheme>
 {
     type WitnessSpaceGroupElement = self_product::GroupElement<2, Scalar>;
     type StatementSpaceGroupElement = self_product::GroupElement<2, GroupElement>;
@@ -73,12 +73,12 @@ for Language<SCALAR_LIMBS, Scalar, GroupElement, CommitmentScheme>
 
         Ok([
             commitment_scheme.commit(
-                &[witness.commitment_message().clone()].into(),
+                &[*witness.commitment_message()].into(),
                 witness.commitment_randomness(),
             ),
-            witness.commitment_message().clone() * base,
+            *witness.commitment_message() * base,
         ]
-            .into())
+        .into())
     }
 }
 
@@ -89,7 +89,7 @@ pub trait WitnessAccessors<Scalar: group::GroupElement> {
 }
 
 impl<Scalar: group::GroupElement> WitnessAccessors<Scalar>
-for self_product::GroupElement<2, Scalar>
+    for self_product::GroupElement<2, Scalar>
 {
     fn commitment_message(&self) -> &Scalar {
         let value: &[Scalar; 2] = self.into();
@@ -111,7 +111,7 @@ pub trait StatementAccessors<GroupElement: group::GroupElement> {
 }
 
 impl<GroupElement: group::GroupElement> StatementAccessors<GroupElement>
-for self_product::GroupElement<2, GroupElement>
+    for self_product::GroupElement<2, GroupElement>
 {
     fn committment_of_discrete_log(&self) -> &GroupElement {
         let value: &[_; 2] = self.into();
@@ -143,23 +143,23 @@ pub struct PublicParameters<
 }
 
 impl<
-    ScalarPublicParameters,
-    GroupPublicParameters,
-    CommitmentSchemePublicParameters,
-    GroupElementValue,
->
-AsRef<
-    GroupsPublicParameters<
-        self_product::PublicParameters<2, ScalarPublicParameters>,
-        self_product::PublicParameters<2, GroupPublicParameters>,
-    >,
->
-for PublicParameters<
-    ScalarPublicParameters,
-    GroupPublicParameters,
-    CommitmentSchemePublicParameters,
-    GroupElementValue,
->
+        ScalarPublicParameters,
+        GroupPublicParameters,
+        CommitmentSchemePublicParameters,
+        GroupElementValue,
+    >
+    AsRef<
+        GroupsPublicParameters<
+            self_product::PublicParameters<2, ScalarPublicParameters>,
+            self_product::PublicParameters<2, GroupPublicParameters>,
+        >,
+    >
+    for PublicParameters<
+        ScalarPublicParameters,
+        GroupPublicParameters,
+        CommitmentSchemePublicParameters,
+        GroupElementValue,
+    >
 {
     fn as_ref(
         &self,
@@ -172,31 +172,31 @@ for PublicParameters<
 }
 
 impl<
-    ScalarPublicParameters,
-    GroupPublicParameters,
-    CommitmentSchemePublicParameters,
-    GroupElementValue,
->
-PublicParameters<
-    ScalarPublicParameters,
-    GroupPublicParameters,
-    CommitmentSchemePublicParameters,
-    GroupElementValue,
->
+        ScalarPublicParameters,
+        GroupPublicParameters,
+        CommitmentSchemePublicParameters,
+        GroupElementValue,
+    >
+    PublicParameters<
+        ScalarPublicParameters,
+        GroupPublicParameters,
+        CommitmentSchemePublicParameters,
+        GroupElementValue,
+    >
 {
     pub fn new<
         const SCALAR_LIMBS: usize,
         Scalar: BoundedGroupElement<SCALAR_LIMBS>
-        + Samplable
-        + Mul<GroupElement, Output=GroupElement>
-        + for<'r> Mul<&'r GroupElement, Output=GroupElement>
-        + Copy,
+            + Samplable
+            + Mul<GroupElement, Output = GroupElement>
+            + for<'r> Mul<&'r GroupElement, Output = GroupElement>
+            + Copy,
         GroupElement,
         CommitmentScheme: HomomorphicCommitmentScheme<
             SCALAR_LIMBS,
-            MessageSpaceGroupElement=self_product::GroupElement<1, Scalar>,
-            RandomnessSpaceGroupElement=Scalar,
-            CommitmentSpaceGroupElement=GroupElement,
+            MessageSpaceGroupElement = self_product::GroupElement<1, Scalar>,
+            RandomnessSpaceGroupElement = Scalar,
+            CommitmentSpaceGroupElement = GroupElement,
         >,
     >(
         scalar_group_public_parameters: Scalar::PublicParameters,
@@ -204,16 +204,16 @@ PublicParameters<
         commitment_scheme_public_parameters: CommitmentScheme::PublicParameters,
         base: GroupElementValue,
     ) -> Self
-        where
-            Scalar: group::GroupElement<PublicParameters=ScalarPublicParameters>,
-            GroupElement: group::GroupElement<
-                Value=GroupElementValue,
-                PublicParameters=GroupPublicParameters,
-            >,
-            CommitmentScheme: HomomorphicCommitmentScheme<
-                SCALAR_LIMBS,
-                PublicParameters=CommitmentSchemePublicParameters,
-            >,
+    where
+        Scalar: group::GroupElement<PublicParameters = ScalarPublicParameters>,
+        GroupElement: group::GroupElement<
+            Value = GroupElementValue,
+            PublicParameters = GroupPublicParameters,
+        >,
+        CommitmentScheme: HomomorphicCommitmentScheme<
+            SCALAR_LIMBS,
+            PublicParameters = CommitmentSchemePublicParameters,
+        >,
     {
         Self {
             groups_public_parameters: GroupsPublicParameters {
@@ -233,11 +233,12 @@ PublicParameters<
 }
 
 #[cfg(any(test, feature = "benchmarking"))]
+#[allow(unused_imports)]
 mod tests {
     use commitment::pedersen;
     use commitment::pedersen::Pedersen;
     use crypto_bigint::U256;
-    use group::{GroupElement, secp256k1};
+    use group::{secp256k1, GroupElement};
     use rand_core::OsRng;
     use rstest::rstest;
 
@@ -252,17 +253,18 @@ mod tests {
         Pedersen<1, { secp256k1::SCALAR_LIMBS }, secp256k1::Scalar, secp256k1::GroupElement>,
     >;
 
-    pub(crate) fn language_public_parameters() -> language::PublicParameters<SOUND_PROOFS_REPETITIONS, Lang> {
+    pub(crate) fn language_public_parameters(
+    ) -> language::PublicParameters<SOUND_PROOFS_REPETITIONS, Lang> {
         let secp256k1_scalar_public_parameters = secp256k1::scalar::PublicParameters::default();
 
         let secp256k1_group_public_parameters =
             secp256k1::group_element::PublicParameters::default();
 
-        let pedersen_public_parameters = pedersen::PublicParameters::default::<
+        let pedersen_public_parameters = pedersen::PublicParameters::derive_default::<
             { secp256k1::SCALAR_LIMBS },
             secp256k1::GroupElement,
         >()
-            .unwrap();
+        .unwrap();
 
         let generator = secp256k1_group_public_parameters.generator;
 
@@ -322,9 +324,18 @@ mod tests {
 
         let secp256k1_group_public_parameters =
             secp256k1::group_element::PublicParameters::default();
-        prover_public_parameters.base = secp256k1::GroupElement::new(prover_public_parameters.base, &secp256k1_group_public_parameters).unwrap().neutral().value();
+        prover_public_parameters.base = secp256k1::GroupElement::new(
+            prover_public_parameters.base,
+            &secp256k1_group_public_parameters,
+        )
+        .unwrap()
+        .neutral()
+        .value();
 
-        test_helpers::proof_over_invalid_public_parameters_fails_verification::<SOUND_PROOFS_REPETITIONS, Lang>(
+        test_helpers::proof_over_invalid_public_parameters_fails_verification::<
+            SOUND_PROOFS_REPETITIONS,
+            Lang,
+        >(
             &prover_public_parameters,
             &verifier_public_parameters,
             batch_size,
@@ -332,9 +343,16 @@ mod tests {
         );
 
         let mut prover_public_parameters = verifier_public_parameters.clone();
-        prover_public_parameters.groups_public_parameters.statement_space_public_parameters.public_parameters.curve_equation_a = U256::from(42u8);
+        prover_public_parameters
+            .groups_public_parameters
+            .statement_space_public_parameters
+            .public_parameters
+            .curve_equation_a = U256::from(42u8);
 
-        test_helpers::proof_over_invalid_public_parameters_fails_verification::<SOUND_PROOFS_REPETITIONS, Lang>(
+        test_helpers::proof_over_invalid_public_parameters_fails_verification::<
+            SOUND_PROOFS_REPETITIONS,
+            Lang,
+        >(
             &prover_public_parameters,
             &verifier_public_parameters,
             batch_size,
@@ -342,9 +360,16 @@ mod tests {
         );
 
         let mut prover_public_parameters = verifier_public_parameters.clone();
-        prover_public_parameters.commitment_scheme_public_parameters.message_generators[0] = prover_public_parameters.commitment_scheme_public_parameters.randomness_generator;
+        prover_public_parameters
+            .commitment_scheme_public_parameters
+            .message_generators[0] = prover_public_parameters
+            .commitment_scheme_public_parameters
+            .randomness_generator;
 
-        test_helpers::proof_over_invalid_public_parameters_fails_verification::<SOUND_PROOFS_REPETITIONS, Lang>(
+        test_helpers::proof_over_invalid_public_parameters_fails_verification::<
+            SOUND_PROOFS_REPETITIONS,
+            Lang,
+        >(
             &prover_public_parameters,
             &verifier_public_parameters,
             batch_size,
@@ -386,59 +411,74 @@ mod tests {
     #[case(2, 1)]
     #[case(3, 1)]
     #[case(5, 2)]
-    fn unresponsive_parties_aborts_session_identifiably(#[case] number_of_parties: usize, #[case] batch_size: usize) {
+    fn unresponsive_parties_aborts_session_identifiably(
+        #[case] number_of_parties: usize,
+        #[case] batch_size: usize,
+    ) {
         let language_public_parameters = language_public_parameters();
 
-        test_helpers::unresponsive_parties_aborts_session_identifiably::<SOUND_PROOFS_REPETITIONS, Lang>(
-            &language_public_parameters,
-            number_of_parties,
-            batch_size,
-        );
+        test_helpers::unresponsive_parties_aborts_session_identifiably::<
+            SOUND_PROOFS_REPETITIONS,
+            Lang,
+        >(&language_public_parameters, number_of_parties, batch_size);
     }
 
     #[rstest]
     #[case(2, 1)]
     #[case(3, 1)]
     #[case(5, 2)]
-    fn wrong_decommitment_aborts_session_identifiably(#[case] number_of_parties: usize, #[case] batch_size: usize) {
+    fn wrong_decommitment_aborts_session_identifiably(
+        #[case] number_of_parties: usize,
+        #[case] batch_size: usize,
+    ) {
         let language_public_parameters = language_public_parameters();
 
-        test_helpers::wrong_decommitment_aborts_session_identifiably::<SOUND_PROOFS_REPETITIONS, Lang>(
-            &language_public_parameters,
-            number_of_parties,
-            batch_size,
-        );
+        test_helpers::wrong_decommitment_aborts_session_identifiably::<
+            SOUND_PROOFS_REPETITIONS,
+            Lang,
+        >(&language_public_parameters, number_of_parties, batch_size);
     }
 
     #[rstest]
     #[case(2, 1)]
     #[case(3, 1)]
     #[case(5, 2)]
-    fn failed_proof_share_verification_aborts_session_identifiably(#[case] number_of_parties: usize, #[case] batch_size: usize) {
+    fn failed_proof_share_verification_aborts_session_identifiably(
+        #[case] number_of_parties: usize,
+        #[case] batch_size: usize,
+    ) {
         let language_public_parameters = language_public_parameters();
 
-        test_helpers::failed_proof_share_verification_aborts_session_identifiably::<SOUND_PROOFS_REPETITIONS, Lang>(
-            &language_public_parameters,
-            number_of_parties,
-            batch_size,
-        );
+        test_helpers::failed_proof_share_verification_aborts_session_identifiably::<
+            SOUND_PROOFS_REPETITIONS,
+            Lang,
+        >(&language_public_parameters, number_of_parties, batch_size);
     }
 }
-
 
 #[cfg(feature = "benchmarking")]
 pub mod benches {
     use criterion::Criterion;
 
-    use crate::committment_of_discrete_log::tests::{Lang, language_public_parameters};
-    use crate::{proof, test_helpers};
+    use crate::committment_of_discrete_log::tests::{language_public_parameters, Lang};
+    use crate::test_helpers;
 
     use super::*;
 
     pub(crate) fn benchmark(_c: &mut Criterion) {
         let language_public_parameters = language_public_parameters();
 
-        test_helpers::benchmark_proof::<SOUND_PROOFS_REPETITIONS, Lang>(&language_public_parameters, None, false);
-        test_helpers::benchmark_aggregation::<SOUND_PROOFS_REPETITIONS, Lang>(&language_public_parameters, None, false);
+        test_helpers::benchmark_proof::<SOUND_PROOFS_REPETITIONS, Lang>(
+            &language_public_parameters,
+            None,
+            false,
+            None,
+        );
+        test_helpers::benchmark_aggregation::<SOUND_PROOFS_REPETITIONS, Lang>(
+            &language_public_parameters,
+            None,
+            false,
+            None,
+        );
     }
 }
