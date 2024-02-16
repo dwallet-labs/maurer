@@ -2,15 +2,19 @@
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 pub use language::Language;
-pub use proof::{BIT_SOUNDNESS_PROOFS_REPETITIONS, Proof, SOUND_PROOFS_REPETITIONS};
+pub use proof::{Proof, BIT_SOUNDNESS_PROOFS_REPETITIONS, SOUND_PROOFS_REPETITIONS};
+
+pub mod aggregation;
+pub mod committment_of_discrete_log;
+pub mod discrete_log_ratio_of_committed_values;
+pub mod knowledge_of_decommitment;
+pub mod knowledge_of_discrete_log;
 
 pub mod language;
 mod proof;
-pub mod aggregation;
-pub mod knowledge_of_discrete_log;
-pub mod discrete_log_ratio_of_committed_values;
 
-#[cfg(feature = "test_helpers")]
+#[cfg(any(test, feature = "benchmarking"))]
+#[allow(unused_imports)]
 pub mod test_helpers {
     pub use crate::aggregation::test_helpers::*;
     pub use crate::language::test_helpers::*;
@@ -30,6 +34,8 @@ pub enum Error {
     Aggregation(#[from] ::proof::aggregation::Error),
     #[error("unsupported repetitions: must be either 1 or 128")]
     UnsupportedRepetitions,
+    #[error("invalid public parameters")]
+    InvalidPublicParameters,
     #[error("invalid parameters")]
     InvalidParameters,
     #[error("serialization/deserialization error")]
@@ -47,7 +53,7 @@ impl TryInto<::proof::aggregation::Error> for Error {
     fn try_into(self) -> std::result::Result<::proof::aggregation::Error, Self::Error> {
         match self {
             Error::Aggregation(e) => Ok(e),
-            e => Err(e)
+            e => Err(e),
         }
     }
 }
@@ -56,4 +62,7 @@ impl TryInto<::proof::aggregation::Error> for Error {
 criterion::criterion_group!(
     benches,
     knowledge_of_discrete_log::benches::benchmark,
+    knowledge_of_decommitment::benches::benchmark,
+    committment_of_discrete_log::benches::benchmark,
+    discrete_log_ratio_of_committed_values::benches::benchmark,
 );
