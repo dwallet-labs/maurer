@@ -6,8 +6,10 @@ pub use proof::{Proof, BIT_SOUNDNESS_PROOFS_REPETITIONS, SOUND_PROOFS_REPETITION
 
 pub mod aggregation;
 pub mod committment_of_discrete_log;
+pub mod discrete_log_ratio_of_committed_values;
 pub mod knowledge_of_decommitment;
 pub mod knowledge_of_discrete_log;
+
 pub mod language;
 mod proof;
 
@@ -62,4 +64,5 @@ criterion::criterion_group!(
     knowledge_of_discrete_log::benches::benchmark,
     knowledge_of_decommitment::benches::benchmark,
     committment_of_discrete_log::benches::benchmark,
+    discrete_log_ratio_of_committed_values::benches::benchmark,
 );
