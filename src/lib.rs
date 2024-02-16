@@ -2,13 +2,13 @@
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 pub use language::Language;
-pub use proof::{BIT_SOUNDNESS_PROOFS_REPETITIONS, Proof, SOUND_PROOFS_REPETITIONS};
+pub use proof::{Proof, BIT_SOUNDNESS_PROOFS_REPETITIONS, SOUND_PROOFS_REPETITIONS};
 
+pub mod aggregation;
+pub mod knowledge_of_decommitment;
+pub mod knowledge_of_discrete_log;
 pub mod language;
 mod proof;
-pub mod aggregation;
-pub mod knowledge_of_discrete_log;
-pub mod knowledge_of_decommitment;
 
 #[cfg(feature = "test_helpers")]
 pub mod test_helpers {
@@ -47,7 +47,7 @@ impl TryInto<::proof::aggregation::Error> for Error {
     fn try_into(self) -> std::result::Result<::proof::aggregation::Error, Self::Error> {
         match self {
             Error::Aggregation(e) => Ok(e),
-            e => Err(e)
+            e => Err(e),
         }
     }
 }
@@ -55,6 +55,6 @@ impl TryInto<::proof::aggregation::Error> for Error {
 #[cfg(feature = "benchmarking")]
 criterion::criterion_group!(
     benches,
-    // knowledge_of_discrete_log::benches::benchmark,
+    knowledge_of_discrete_log::benches::benchmark,
     knowledge_of_decommitment::benches::benchmark,
 );

@@ -405,19 +405,19 @@ pub(crate) mod benches {
     use criterion::Criterion;
 
     pub(crate) fn benchmark(_c: &mut Criterion) {
-        // let sound_language_public_parameters =
-        //     language_public_parameters::<SOUND_PROOFS_REPETITIONS, 1>();
-        //
-        // test_helpers::benchmark_proof::<SOUND_PROOFS_REPETITIONS, Lang<SOUND_PROOFS_REPETITIONS, 1>>(
-        //     &sound_language_public_parameters,
-        //     None,
-        //     false,
-        //     None,
-        // );
-        // test_helpers::benchmark_aggregation::<
-        //     SOUND_PROOFS_REPETITIONS,
-        //     Lang<SOUND_PROOFS_REPETITIONS, 1>,
-        // >(&sound_language_public_parameters, None, false, None);
+        let sound_language_public_parameters =
+            language_public_parameters::<SOUND_PROOFS_REPETITIONS, 1>();
+
+        test_helpers::benchmark_proof::<SOUND_PROOFS_REPETITIONS, Lang<SOUND_PROOFS_REPETITIONS, 1>>(
+            &sound_language_public_parameters,
+            None,
+            false,
+            None,
+        );
+        test_helpers::benchmark_aggregation::<
+            SOUND_PROOFS_REPETITIONS,
+            Lang<SOUND_PROOFS_REPETITIONS, 1>,
+        >(&sound_language_public_parameters, None, false, None);
 
         let language_public_parameters1 =
             language_public_parameters::<BIT_SOUNDNESS_PROOFS_REPETITIONS, 1>();
@@ -436,94 +436,94 @@ pub(crate) mod benches {
         let language_public_parameters128 =
             language_public_parameters::<BIT_SOUNDNESS_PROOFS_REPETITIONS, 128>();
 
-        // test_helpers::benchmark_proof::<
-        //     BIT_SOUNDNESS_PROOFS_REPETITIONS,
-        //     Lang<BIT_SOUNDNESS_PROOFS_REPETITIONS, 1>,
-        // >(
-        //     &language_public_parameters1,
-        //     Some("1".to_string()),
-        //     true,
-        //     Some(vec![
-        //         1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
-        //     ]),
-        // );
-        // test_helpers::benchmark_proof::<
-        //     BIT_SOUNDNESS_PROOFS_REPETITIONS,
-        //     Lang<BIT_SOUNDNESS_PROOFS_REPETITIONS, 2>,
-        // >(
-        //     &language_public_parameters2,
-        //     Some("2".to_string()),
-        //     true,
-        //     Some(vec![
-        //         1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
-        //     ]),
-        // );
-        // test_helpers::benchmark_proof::<
-        //     BIT_SOUNDNESS_PROOFS_REPETITIONS,
-        //     Lang<BIT_SOUNDNESS_PROOFS_REPETITIONS, 4>,
-        // >(
-        //     &language_public_parameters4,
-        //     Some("4".to_string()),
-        //     true,
-        //     Some(vec![
-        //         1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
-        //     ]),
-        // );
-        // test_helpers::benchmark_proof::<
-        //     BIT_SOUNDNESS_PROOFS_REPETITIONS,
-        //     Lang<BIT_SOUNDNESS_PROOFS_REPETITIONS, 8>,
-        // >(
-        //     &language_public_parameters8,
-        //     Some("8".to_string()),
-        //     true,
-        //     Some(vec![
-        //         1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
-        //     ]),
-        // );
-        // test_helpers::benchmark_proof::<
-        //     BIT_SOUNDNESS_PROOFS_REPETITIONS,
-        //     Lang<BIT_SOUNDNESS_PROOFS_REPETITIONS, 16>,
-        // >(
-        //     &language_public_parameters16,
-        //     Some("16".to_string()),
-        //     true,
-        //     Some(vec![
-        //         1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
-        //     ]),
-        // );
-        // test_helpers::benchmark_proof::<
-        //     BIT_SOUNDNESS_PROOFS_REPETITIONS,
-        //     Lang<BIT_SOUNDNESS_PROOFS_REPETITIONS, 32>,
-        // >(
-        //     &language_public_parameters32,
-        //     Some("32".to_string()),
-        //     true,
-        //     Some(vec![
-        //         1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
-        //     ]),
-        // );
-        // test_helpers::benchmark_proof::<
-        //     BIT_SOUNDNESS_PROOFS_REPETITIONS,
-        //     Lang<BIT_SOUNDNESS_PROOFS_REPETITIONS, 64>,
-        // >(
-        //     &language_public_parameters64,
-        //     Some("64".to_string()),
-        //     true,
-        //     Some(vec![
-        //         1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
-        //     ]),
-        // );
-        // test_helpers::benchmark_proof::<
-        //     BIT_SOUNDNESS_PROOFS_REPETITIONS,
-        //     Lang<BIT_SOUNDNESS_PROOFS_REPETITIONS, 128>,
-        // >(
-        //     &language_public_parameters128,
-        //     Some("128".to_string()),
-        //     true,
-        //     Some(vec![
-        //         1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
-        //     ]),
-        // );
+        test_helpers::benchmark_proof::<
+            BIT_SOUNDNESS_PROOFS_REPETITIONS,
+            Lang<BIT_SOUNDNESS_PROOFS_REPETITIONS, 1>,
+        >(
+            &language_public_parameters1,
+            Some("1".to_string()),
+            true,
+            Some(vec![
+                1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
+            ]),
+        );
+        test_helpers::benchmark_proof::<
+            BIT_SOUNDNESS_PROOFS_REPETITIONS,
+            Lang<BIT_SOUNDNESS_PROOFS_REPETITIONS, 2>,
+        >(
+            &language_public_parameters2,
+            Some("2".to_string()),
+            true,
+            Some(vec![
+                1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
+            ]),
+        );
+        test_helpers::benchmark_proof::<
+            BIT_SOUNDNESS_PROOFS_REPETITIONS,
+            Lang<BIT_SOUNDNESS_PROOFS_REPETITIONS, 4>,
+        >(
+            &language_public_parameters4,
+            Some("4".to_string()),
+            true,
+            Some(vec![
+                1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
+            ]),
+        );
+        test_helpers::benchmark_proof::<
+            BIT_SOUNDNESS_PROOFS_REPETITIONS,
+            Lang<BIT_SOUNDNESS_PROOFS_REPETITIONS, 8>,
+        >(
+            &language_public_parameters8,
+            Some("8".to_string()),
+            true,
+            Some(vec![
+                1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
+            ]),
+        );
+        test_helpers::benchmark_proof::<
+            BIT_SOUNDNESS_PROOFS_REPETITIONS,
+            Lang<BIT_SOUNDNESS_PROOFS_REPETITIONS, 16>,
+        >(
+            &language_public_parameters16,
+            Some("16".to_string()),
+            true,
+            Some(vec![
+                1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
+            ]),
+        );
+        test_helpers::benchmark_proof::<
+            BIT_SOUNDNESS_PROOFS_REPETITIONS,
+            Lang<BIT_SOUNDNESS_PROOFS_REPETITIONS, 32>,
+        >(
+            &language_public_parameters32,
+            Some("32".to_string()),
+            true,
+            Some(vec![
+                1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
+            ]),
+        );
+        test_helpers::benchmark_proof::<
+            BIT_SOUNDNESS_PROOFS_REPETITIONS,
+            Lang<BIT_SOUNDNESS_PROOFS_REPETITIONS, 64>,
+        >(
+            &language_public_parameters64,
+            Some("64".to_string()),
+            true,
+            Some(vec![
+                1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
+            ]),
+        );
+        test_helpers::benchmark_proof::<
+            BIT_SOUNDNESS_PROOFS_REPETITIONS,
+            Lang<BIT_SOUNDNESS_PROOFS_REPETITIONS, 128>,
+        >(
+            &language_public_parameters128,
+            Some("128".to_string()),
+            true,
+            Some(vec![
+                1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
+            ]),
+        );
 
         test_helpers::benchmark_aggregation::<
             BIT_SOUNDNESS_PROOFS_REPETITIONS,
