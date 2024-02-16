@@ -5,6 +5,7 @@ pub use language::Language;
 pub use proof::{Proof, BIT_SOUNDNESS_PROOFS_REPETITIONS, SOUND_PROOFS_REPETITIONS};
 
 pub mod aggregation;
+pub mod knowledge_of_decommitment;
 pub mod knowledge_of_discrete_log;
 pub mod language;
 mod proof;
@@ -24,6 +25,8 @@ pub enum Error {
     GroupInstantiation(#[from] group::Error),
     #[error("proof error")]
     Proof(#[from] ::proof::Error),
+    #[error("commitment error")]
+    Commitment(#[from] commitment::Error),
     #[error("aggregation error")]
     Aggregation(#[from] ::proof::aggregation::Error),
     #[error("unsupported repetitions: must be either 1 or 128")]
@@ -53,4 +56,8 @@ impl TryInto<::proof::aggregation::Error> for Error {
 }
 
 #[cfg(feature = "benchmarking")]
-criterion::criterion_group!(benches, knowledge_of_discrete_log::benches::benchmark,);
+criterion::criterion_group!(
+    benches,
+    knowledge_of_discrete_log::benches::benchmark,
+    knowledge_of_decommitment::benches::benchmark,
+);
