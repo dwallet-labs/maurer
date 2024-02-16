@@ -1,10 +1,6 @@
 // Author: dWallet Labs, Ltd.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
-use std::collections::HashSet;
-
-use group::PartyID;
-
 use crate::{language, Proof};
 
 pub use decommitment_round::Decommitment;
@@ -20,11 +16,13 @@ pub type Output<const REPETITIONS: usize, Language, ProtocolContext> = (
     Vec<language::StatementSpaceGroupElement<REPETITIONS, Language>>,
 );
 
-#[cfg(feature = "test_helpers")]
+#[cfg(any(test, feature = "benchmarking"))]
+#[allow(unused_imports)]
 pub(super) mod test_helpers {
     use criterion::measurement::{Measurement, WallTime};
+    use group::PartyID;
     use rand_core::OsRng;
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
     use std::iter;
     use std::marker::PhantomData;
     use std::time::Duration;
@@ -34,6 +32,7 @@ pub(super) mod test_helpers {
 
     use super::*;
 
+    /// Sample witnesses for aggregation tests.
     pub fn sample_witnesses_for_aggregation<
         const REPETITIONS: usize,
         Lang: Language<REPETITIONS>,
@@ -53,6 +52,7 @@ pub(super) mod test_helpers {
         .collect()
     }
 
+    /// Setup aggregation tests.
     fn setup<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
         language_public_parameters: &Lang::PublicParameters,
         number_of_parties: usize,
@@ -96,6 +96,7 @@ pub(super) mod test_helpers {
         (instantiation_time, parties)
     }
 
+    /// Test that the Maurer aggregation protocol for `Lang` succeeds.
     pub fn aggregates<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
         language_public_parameters: &Lang::PublicParameters,
         number_of_parties: usize,
@@ -104,7 +105,7 @@ pub(super) mod test_helpers {
         let (_, commitment_round_parties) =
             setup::<REPETITIONS, Lang>(language_public_parameters, number_of_parties, batch_size);
 
-        let (_, _, _, _, _, (proof, statements)) =
+        let (.., (proof, statements)) =
             proof::aggregation::test_helpers::aggregates(commitment_round_parties);
 
         assert!(
@@ -115,6 +116,7 @@ pub(super) mod test_helpers {
         );
     }
 
+    /// Test that the Maurer aggregation protocol for `Lang` aborts identifiably in the presence of unresponsive parties.
     pub fn unresponsive_parties_aborts_session_identifiably<
         const REPETITIONS: usize,
         Lang: Language<REPETITIONS>,
@@ -147,6 +149,7 @@ pub(super) mod test_helpers {
         );
     }
 
+    /// Test that the Maurer aggregation protocol for `Lang` aborts identifiably in the presence of malicious parties in proof share round.
     pub fn failed_proof_share_verification_aborts_session_identifiably<
         const REPETITIONS: usize,
         Lang: Language<REPETITIONS>,
@@ -163,6 +166,7 @@ pub(super) mod test_helpers {
         proof::aggregation::test_helpers::failed_proof_share_verification_aborts_session_identifiably(commitment_round_parties, wrong_commitment_round_parties);
     }
 
+    /// Benchmark aggregation.
     pub fn benchmark_aggregation<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
         language_public_parameters: &Lang::PublicParameters,
         extra_description: Option<String>,

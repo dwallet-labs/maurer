@@ -112,6 +112,7 @@ pub type Proof<Scalar, GroupElement, ProtocolContext> =
     crate::Proof<SOUND_PROOFS_REPETITIONS, Language<Scalar, GroupElement>, ProtocolContext>;
 
 #[cfg(any(test, feature = "benchmarking"))]
+#[allow(unused_imports)]
 mod tests {
     use super::*;
     use crate::language;

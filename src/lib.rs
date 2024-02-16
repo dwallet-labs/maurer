@@ -9,7 +9,8 @@ pub mod knowledge_of_discrete_log;
 pub mod language;
 mod proof;
 
-#[cfg(feature = "test_helpers")]
+#[cfg(any(test, feature = "benchmarking"))]
+#[allow(unused_imports)]
 pub mod test_helpers {
     pub use crate::aggregation::test_helpers::*;
     pub use crate::language::test_helpers::*;

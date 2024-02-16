@@ -126,7 +126,8 @@ impl<
 {
 }
 
-#[cfg(feature = "test_helpers")]
+#[cfg(any(test, feature = "benchmarking"))]
+#[allow(unused_imports)]
 pub(super) mod test_helpers {
     use core::iter;
 
