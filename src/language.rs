@@ -61,7 +61,7 @@ pub trait Language<
     ///
     /// The name of this method, `homomorphose` is inspired by the wonderful book
     /// "Gödel, Escher, Bach: An Eternal Golden Braid", by Douglas R. Hofstadter, and specifically,
-    /// Escher's painting ["Metamorphosis II"](https://www.digitalcommonwealth.org/search/commonwealth:ww72cb78j), 
+    /// Escher's painting ["Metamorphosis II"](https://www.digitalcommonwealth.org/search/commonwealth:ww72cb78j),
     /// in which the theme `METAMORPHOSE` is central.
     fn homomorphose(
         witness: &Self::WitnessSpaceGroupElement,
@@ -126,7 +126,8 @@ impl<
 {
 }
 
-#[cfg(feature = "test_helpers")]
+#[cfg(any(test, feature = "benchmarking"))]
+#[allow(unused_imports)]
 pub(super) mod test_helpers {
     use core::iter;
 

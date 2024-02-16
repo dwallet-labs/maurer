@@ -15,7 +15,7 @@ use crate::aggregation::Output;
 use crate::language::GroupsPublicParametersAccessors;
 use crate::{Error, Proof, Result};
 
-#[cfg_attr(feature = "test_helpers", derive(Clone))]
+#[cfg_attr(any(test, feature = "benchmarking"), derive(Clone))]
 pub struct Party<
     // Number of times this proof should be repeated to achieve sufficient security.
     const REPETITIONS: usize,

@@ -1,10 +1,6 @@
 // Author: dWallet Labs, Ltd.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
-use std::collections::HashSet;
-
-use group::PartyID;
-
 use crate::{language, Proof};
 
 pub use decommitment_round::Decommitment;
@@ -20,11 +16,13 @@ pub type Output<const REPETITIONS: usize, Language, ProtocolContext> = (
     Vec<language::StatementSpaceGroupElement<REPETITIONS, Language>>,
 );
 
-#[cfg(feature = "test_helpers")]
+#[cfg(any(test, feature = "benchmarking"))]
+#[allow(unused_imports)]
 pub(super) mod test_helpers {
     use criterion::measurement::{Measurement, WallTime};
+    use group::PartyID;
     use rand_core::OsRng;
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
     use std::iter;
     use std::marker::PhantomData;
     use std::time::Duration;

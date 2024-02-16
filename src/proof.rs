@@ -397,7 +397,8 @@ impl<
 // These tests helpers can be used for different `group` implementations,
 // therefor they need to be exported.
 // Since exporting rust `#[cfg(test)]` is impossible, they exist in a dedicated feature-gated module.
-#[cfg(feature = "test_helpers")]
+#[cfg(any(test, feature = "benchmarking"))]
+#[allow(unused_imports)]
 pub(super) mod test_helpers {
     use std::marker::PhantomData;
 

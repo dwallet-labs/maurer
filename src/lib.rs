@@ -5,10 +5,12 @@ pub use language::Language;
 pub use proof::{Proof, BIT_SOUNDNESS_PROOFS_REPETITIONS, SOUND_PROOFS_REPETITIONS};
 
 pub mod aggregation;
+pub mod knowledge_of_discrete_log;
 pub mod language;
 mod proof;
 
-#[cfg(feature = "test_helpers")]
+#[cfg(any(test, feature = "benchmarking"))]
+#[allow(unused_imports)]
 pub mod test_helpers {
     pub use crate::aggregation::test_helpers::*;
     pub use crate::language::test_helpers::*;
@@ -51,7 +53,4 @@ impl TryInto<::proof::aggregation::Error> for Error {
 }
 
 #[cfg(feature = "benchmarking")]
-criterion::criterion_group!(benches, empty_benchmark);
-
-#[cfg(feature = "benchmarking")]
-pub fn empty_benchmark(_c: &mut criterion::Criterion) {}
+criterion::criterion_group!(benches, knowledge_of_discrete_log::benches::benchmark,);
