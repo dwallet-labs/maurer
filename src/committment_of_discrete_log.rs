@@ -9,7 +9,8 @@ use serde::{Deserialize, Serialize};
 use crate::language::GroupsPublicParameters;
 use crate::{Result, SOUND_PROOFS_REPETITIONS};
 
-/// Commitment of Discrete Log Maurer Language
+/// Commitment of Discrete Log Maurer Language:
+// $$ (x,r) \mapsto (\textsf{Com}(x; r), g^x) $$
 ///
 /// SECURITY NOTICE:
 /// Because correctness and zero-knowledge is guaranteed for any group in this language, we choose
