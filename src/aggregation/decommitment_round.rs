@@ -4,15 +4,15 @@
 use std::collections::{HashMap, HashSet};
 
 use crypto_bigint::rand_core::CryptoRngCore;
-use group::{ComputationalSecuritySizedNumber, GroupElement, PartyID};
-use proof::aggregation::DecommitmentRoundParty;
+use group::{ComputationalSecuritySizedNumber, PartyID};
+use proof::aggregation::{process_incoming_messages, DecommitmentRoundParty};
 use serde::{Deserialize, Serialize};
 
 use commitment::Commitment;
 
-use crate::{Error, Result};
-use crate::aggregation::{process_incoming_messages, proof_share_round};
+use crate::aggregation::proof_share_round;
 use crate::language;
+use crate::{Error, Result};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Decommitment<const REPETITIONS: usize, Language: language::Language<REPETITIONS>> {
@@ -22,7 +22,7 @@ pub struct Decommitment<const REPETITIONS: usize, Language: language::Language<R
     pub(super) commitment_randomness: ComputationalSecuritySizedNumber,
 }
 
-#[cfg_attr(feature = "test_helpers", derive(Clone))]
+#[cfg_attr(any(test, feature = "benchmarking"), derive(Clone))]
 pub struct Party<
     // Number of times this proof should be repeated to achieve sufficient security
     const REPETITIONS: usize,
@@ -41,16 +41,15 @@ pub struct Party<
     pub(super) statements: Vec<Language::StatementSpaceGroupElement>,
     pub(super) randomizers: [Language::WitnessSpaceGroupElement; REPETITIONS],
     pub(super) statement_masks: [Language::StatementSpaceGroupElement; REPETITIONS],
-    pub(super) decommitment: Decommitment::<REPETITIONS, Language>,
+    pub(super) decommitment: Decommitment<REPETITIONS, Language>,
 }
 
-
 impl<
-    const REPETITIONS: usize,
-    Language: language::Language<REPETITIONS>,
-    ProtocolContext: Clone + Serialize,
-> DecommitmentRoundParty<super::Output<REPETITIONS, Language, ProtocolContext>>
-for Party<REPETITIONS, Language, ProtocolContext>
+        const REPETITIONS: usize,
+        Language: language::Language<REPETITIONS>,
+        ProtocolContext: Clone + Serialize,
+    > DecommitmentRoundParty<super::Output<REPETITIONS, Language, ProtocolContext>>
+    for Party<REPETITIONS, Language, ProtocolContext>
 {
     type Error = Error;
     type Commitment = Commitment;
@@ -62,7 +61,8 @@ for Party<REPETITIONS, Language, ProtocolContext>
         commitments: HashMap<PartyID, Self::Commitment>,
         _rng: &mut impl CryptoRngCore,
     ) -> Result<(Self::Decommitment, Self::ProofShareRoundParty)> {
-        let commitments = process_incoming_messages(self.party_id, self.provers.clone(), commitments)?;
+        let commitments =
+            process_incoming_messages(self.party_id, self.provers.clone(), commitments, true)?;
 
         let proof_share_round_party =
             proof_share_round::Party::<REPETITIONS, Language, ProtocolContext> {

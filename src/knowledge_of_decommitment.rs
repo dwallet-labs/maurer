@@ -202,7 +202,8 @@ impl<
     }
 }
 
-#[cfg(feature = "test_helpers")]
+#[cfg(any(test, feature = "benchmarking"))]
+#[allow(unused_imports)]
 mod tests {
     use commitment::pedersen;
     use commitment::pedersen::Pedersen;

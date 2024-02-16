@@ -10,7 +10,8 @@ pub mod knowledge_of_discrete_log;
 pub mod language;
 mod proof;
 
-#[cfg(feature = "test_helpers")]
+#[cfg(any(test, feature = "benchmarking"))]
+#[allow(unused_imports)]
 pub mod test_helpers {
     pub use crate::aggregation::test_helpers::*;
     pub use crate::language::test_helpers::*;
@@ -30,6 +31,8 @@ pub enum Error {
     Aggregation(#[from] ::proof::aggregation::Error),
     #[error("unsupported repetitions: must be either 1 or 128")]
     UnsupportedRepetitions,
+    #[error("invalid public parameters")]
+    InvalidPublicParameters,
     #[error("invalid parameters")]
     InvalidParameters,
     #[error("serialization/deserialization error")]
