@@ -15,7 +15,7 @@ use crate::SOUND_PROOFS_REPETITIONS;
 /// Because correctness and zero-knowledge is guaranteed for any group in this language, we choose
 /// to provide a fully generic implementation.
 ///
-/// However knowledge-soundness proofs are group dependent, and thus we can only assure security for
+/// However, knowledge-soundness proofs are group-dependent, and thus we can only assure security for
 /// groups for which we know how to prove it.
 ///
 /// In the paper, we have proved it for any prime known-order group; so it is safe to use with a
