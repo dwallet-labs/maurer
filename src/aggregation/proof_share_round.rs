@@ -25,7 +25,7 @@ pub struct ProofShare<const REPETITIONS: usize, Language: crate::Language<REPETI
     pub(super)  [WitnessSpaceValue<REPETITIONS, Language>; REPETITIONS],
 );
 
-#[cfg_attr(any(test, feature = "benchmarking"), derive(Clone))]
+#[cfg_attr(any(test, feature = "test_helpers"), derive(Clone))]
 pub struct Party<
     // Number of times this proof should be repeated to achieve sufficient security
     const REPETITIONS: usize,
