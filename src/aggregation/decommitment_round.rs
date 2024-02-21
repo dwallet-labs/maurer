@@ -16,7 +16,7 @@ use crate::{Error, Result};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Decommitment<const REPETITIONS: usize, Language: language::Language<REPETITIONS>> {
-    pub(crate) statements: Vec<group::Value<Language::StatementSpaceGroupElement>>,
+    pub statements: Vec<group::Value<Language::StatementSpaceGroupElement>>,
     #[serde(with = "group::helpers::const_generic_array_serialization")]
     pub(super) statement_masks: [group::Value<Language::StatementSpaceGroupElement>; REPETITIONS],
     pub(super) commitment_randomness: ComputationalSecuritySizedNumber,
