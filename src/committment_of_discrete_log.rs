@@ -6,12 +6,10 @@ use commitment::HomomorphicCommitmentScheme;
 use group::{self_product, BoundedGroupElement, CyclicGroupElement, Samplable};
 use serde::{Deserialize, Serialize};
 
-use crate::language::GroupsPublicParameters;
-use crate::{Result, SOUND_PROOFS_REPETITIONS};
+use crate::{language::GroupsPublicParameters, Result, SOUND_PROOFS_REPETITIONS};
 
 /// Commitment of Discrete Log Maurer Language:
 // $$ (x,r) \mapsto (\textsf{Com}(x; r), g^x) $$
-///
 /// SECURITY NOTICE:
 /// Because correctness and zero-knowledge is guaranteed for any group in this language, we choose
 /// to provide a fully generic implementation.
@@ -185,36 +183,32 @@ impl<
         GroupElementValue,
     >
 {
-    pub fn new<
-        const SCALAR_LIMBS: usize,
-        Scalar: BoundedGroupElement<SCALAR_LIMBS>
-            + Samplable
-            + Mul<GroupElement, Output = GroupElement>
-            + for<'r> Mul<&'r GroupElement, Output = GroupElement>
-            + Copy,
-        GroupElement,
-        CommitmentScheme: HomomorphicCommitmentScheme<
-            SCALAR_LIMBS,
-            MessageSpaceGroupElement = self_product::GroupElement<1, Scalar>,
-            RandomnessSpaceGroupElement = Scalar,
-            CommitmentSpaceGroupElement = GroupElement,
-        >,
-    >(
+    pub fn new<const SCALAR_LIMBS: usize, Scalar, GroupElement, CommitmentScheme>(
         scalar_group_public_parameters: Scalar::PublicParameters,
         group_public_parameters: GroupElement::PublicParameters,
         commitment_scheme_public_parameters: CommitmentScheme::PublicParameters,
         base: GroupElementValue,
     ) -> Self
     where
-        Scalar: group::GroupElement<PublicParameters = ScalarPublicParameters>,
+        Scalar: group::GroupElement<PublicParameters = ScalarPublicParameters>
+            + BoundedGroupElement<SCALAR_LIMBS>
+            + Samplable
+            + Mul<GroupElement, Output = GroupElement>
+            + for<'r> Mul<&'r GroupElement, Output = GroupElement>
+            + Copy,
         GroupElement: group::GroupElement<
             Value = GroupElementValue,
             PublicParameters = GroupPublicParameters,
         >,
         CommitmentScheme: HomomorphicCommitmentScheme<
-            SCALAR_LIMBS,
-            PublicParameters = CommitmentSchemePublicParameters,
-        >,
+                SCALAR_LIMBS,
+                PublicParameters = CommitmentSchemePublicParameters,
+            > + HomomorphicCommitmentScheme<
+                SCALAR_LIMBS,
+                MessageSpaceGroupElement = self_product::GroupElement<1, Scalar>,
+                RandomnessSpaceGroupElement = Scalar,
+                CommitmentSpaceGroupElement = GroupElement,
+            >,
     {
         Self {
             groups_public_parameters: GroupsPublicParameters {
@@ -236,8 +230,7 @@ impl<
 #[cfg(any(test, feature = "benchmarking"))]
 #[allow(unused_imports)]
 mod tests {
-    use commitment::pedersen;
-    use commitment::pedersen::Pedersen;
+    use commitment::{pedersen, pedersen::Pedersen};
     use crypto_bigint::U256;
     use group::{secp256k1, GroupElement};
     use rand_core::OsRng;
@@ -461,8 +454,10 @@ mod tests {
 pub mod benches {
     use criterion::Criterion;
 
-    use crate::committment_of_discrete_log::tests::{language_public_parameters, Lang};
-    use crate::test_helpers;
+    use crate::{
+        committment_of_discrete_log::tests::{language_public_parameters, Lang},
+        test_helpers,
+    };
 
     use super::*;
 
