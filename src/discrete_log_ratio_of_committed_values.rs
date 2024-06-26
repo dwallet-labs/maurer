@@ -2,25 +2,23 @@
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 use std::{marker::PhantomData, ops::Mul};
 
-use commitment::pedersen::Pedersen;
-use commitment::{pedersen, HomomorphicCommitmentScheme};
+use commitment::{pedersen, pedersen::Pedersen, HomomorphicCommitmentScheme};
 use group::{self_product, KnownOrderGroupElement, Samplable};
 use serde::{Deserialize, Serialize};
 
-use crate::language::GroupsPublicParameters;
-use crate::Result;
-use crate::SOUND_PROOFS_REPETITIONS;
+use crate::{language::GroupsPublicParameters, Result, SOUND_PROOFS_REPETITIONS};
 
 /// Ratio Between Committed Values is the Discrete Log Maurer Language.
 /// $$ (m,r_1,r_2) \mapsto Com_{G,H}(m; r_1), Com_{X,H}(m, r_2) $$
-/// Where $X=g^x$ is a public parameter and we use Pedersen commitments where $Com_{X,H}(m,r_2) = Com_{G,H}(x*m, r_2)$.
+/// Where $X=g^x$ is a public parameter, and we use Pedersen commitments where
+/// $Com_{X,H}(m,r_2) = Com_{G,H}(x*m, r_2)$.
 ///
 /// SECURITY NOTICE:
 /// Because correctness and zero-knowledge is guaranteed for any group in this language, we choose
 /// to provide a fully generic implementation.
 ///
-/// However knowledge-soundness proofs are group dependent, and thus we can only assure security for
-/// groups for which we know how to prove it.
+/// However, knowledge-soundness proofs are group-dependent, and thus we can only assure security
+/// for groups for which we know how to prove it.
 ///
 /// In the paper, we have proved it for any prime known-order group; so it is safe to use with a
 /// `PrimeOrderGroupElement`.
@@ -154,15 +152,7 @@ pub struct PublicParameters<ScalarPublicParameters, GroupPublicParameters, Group
 impl<ScalarPublicParameters, GroupPublicParameters, GroupElementValue>
     PublicParameters<ScalarPublicParameters, GroupPublicParameters, GroupElementValue>
 {
-    pub fn new<
-        const SCALAR_LIMBS: usize,
-        Scalar: KnownOrderGroupElement<SCALAR_LIMBS>
-            + Samplable
-            + Mul<GroupElement, Output = GroupElement>
-            + for<'r> Mul<&'r GroupElement, Output = GroupElement>
-            + Copy,
-        GroupElement,
-    >(
+    pub fn new<const SCALAR_LIMBS: usize, Scalar, GroupElement>(
         scalar_group_public_parameters: Scalar::PublicParameters,
         group_public_parameters: GroupElement::PublicParameters,
         commitment_scheme_public_parameters: commitment::PublicParameters<
@@ -172,7 +162,12 @@ impl<ScalarPublicParameters, GroupPublicParameters, GroupElementValue>
         base_by_discrete_log: GroupElement,
     ) -> Self
     where
-        Scalar: group::GroupElement<PublicParameters = ScalarPublicParameters>,
+        Scalar: group::GroupElement<PublicParameters = ScalarPublicParameters>
+            + KnownOrderGroupElement<SCALAR_LIMBS>
+            + Samplable
+            + Mul<GroupElement, Output = GroupElement>
+            + for<'r> Mul<&'r GroupElement, Output = GroupElement>
+            + Copy,
         GroupElement: group::GroupElement<
             Value = GroupElementValue,
             PublicParameters = GroupPublicParameters,
@@ -285,8 +280,8 @@ mod tests {
     fn invalid_proof_fails_verification(#[case] batch_size: usize) {
         let language_public_parameters = language_public_parameters();
 
-        // No invalid values as secp256k1 statically defines group,
-        // `k256::AffinePoint` assures deserialized values are on curve,
+        // No invalid values as secp256k1 statically defines a group,
+        // `k256::AffinePoint` assures deserialized values are on a curve,
         // and `Value` can only be instantiated through deserialization
         test_helpers::invalid_proof_fails_verification::<SOUND_PROOFS_REPETITIONS, Lang>(
             None,
@@ -443,8 +438,10 @@ mod tests {
 pub mod benches {
     use criterion::Criterion;
 
-    use crate::discrete_log_ratio_of_committed_values::tests::{language_public_parameters, Lang};
-    use crate::test_helpers;
+    use crate::{
+        discrete_log_ratio_of_committed_values::tests::{language_public_parameters, Lang},
+        test_helpers,
+    };
 
     use super::*;
 

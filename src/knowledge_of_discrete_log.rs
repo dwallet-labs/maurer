@@ -5,9 +5,7 @@ use std::{marker::PhantomData, ops::Mul};
 use group::{CyclicGroupElement, Samplable};
 use serde::{Deserialize, Serialize};
 
-use crate::language::GroupsPublicParameters;
-use crate::Result;
-use crate::SOUND_PROOFS_REPETITIONS;
+use crate::{language::GroupsPublicParameters, Result, SOUND_PROOFS_REPETITIONS};
 
 /// Schnorr's Knowledge of Discrete Log Maurer Language.
 ///
@@ -15,8 +13,8 @@ use crate::SOUND_PROOFS_REPETITIONS;
 /// Because correctness and zero-knowledge is guaranteed for any group in this language, we choose
 /// to provide a fully generic implementation.
 ///
-/// However, knowledge-soundness proofs are group-dependent, and thus we can only assure security for
-/// groups for which we know how to prove it.
+/// However, knowledge-soundness proofs are group-dependent, and thus we can only assure security
+/// for groups for which we know how to prove it.
 ///
 /// In the paper, we have proved it for any prime known-order group; so it is safe to use with a
 /// `PrimeOrderGroupElement`.
@@ -72,20 +70,18 @@ pub struct PublicParameters<ScalarPublicParameters, GroupPublicParameters, Group
 impl<ScalarPublicParameters, GroupPublicParameters, GroupElementValue>
     PublicParameters<ScalarPublicParameters, GroupPublicParameters, GroupElementValue>
 {
-    pub fn new<
-        Scalar: group::GroupElement
-            + Samplable
-            + Mul<GroupElement, Output = GroupElement>
-            + for<'r> Mul<&'r GroupElement, Output = GroupElement>
-            + Copy,
-        GroupElement,
-    >(
+    pub fn new<Scalar, GroupElement>(
         scalar_group_public_parameters: Scalar::PublicParameters,
         group_public_parameters: GroupElement::PublicParameters,
         base: GroupElementValue,
     ) -> Self
     where
-        Scalar: group::GroupElement<PublicParameters = ScalarPublicParameters>,
+        Scalar: group::GroupElement<PublicParameters = ScalarPublicParameters>
+            + group::GroupElement
+            + Samplable
+            + Mul<GroupElement, Output = GroupElement>
+            + for<'r> Mul<&'r GroupElement, Output = GroupElement>
+            + Copy,
         GroupElement: group::GroupElement<Value = GroupElementValue, PublicParameters = GroupPublicParameters>
             + CyclicGroupElement,
     {
@@ -114,13 +110,14 @@ pub type Proof<Scalar, GroupElement, ProtocolContext> =
 #[cfg(any(test, feature = "benchmarking"))]
 #[allow(unused_imports)]
 mod tests {
-    use super::*;
-    use crate::language;
-    use crate::test_helpers;
     use crypto_bigint::U256;
     use group::{secp256k1, GroupElement};
     use rand_core::OsRng;
     use rstest::rstest;
+
+    use crate::{language, test_helpers};
+
+    use super::*;
 
     pub(crate) type Lang = Language<secp256k1::Scalar, secp256k1::GroupElement>;
 
@@ -299,10 +296,12 @@ mod tests {
 
 #[cfg(feature = "benchmarking")]
 pub(crate) mod benches {
-    use crate::knowledge_of_discrete_log::tests::{language_public_parameters, Lang};
-    use crate::test_helpers;
-    use crate::SOUND_PROOFS_REPETITIONS;
     use criterion::Criterion;
+
+    use crate::{
+        knowledge_of_discrete_log::tests::{language_public_parameters, Lang},
+        test_helpers, SOUND_PROOFS_REPETITIONS,
+    };
 
     pub(crate) fn benchmark(_c: &mut Criterion) {
         let language_public_parameters = language_public_parameters();

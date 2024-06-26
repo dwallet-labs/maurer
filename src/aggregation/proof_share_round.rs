@@ -3,21 +3,20 @@
 
 use std::collections::{HashMap, HashSet};
 
+use commitment::Commitment;
 use crypto_bigint::rand_core::CryptoRngCore;
-use group::helpers::FlatMapResults;
-use group::{GroupElement, PartyID};
+use group::{helpers::FlatMapResults, GroupElement, PartyID};
 use proof::aggregation::{process_incoming_messages, ProofShareRoundParty};
 use serde::{Deserialize, Serialize};
 
-use commitment::Commitment;
-
-use crate::aggregation::commitment_round::COMMITMENT_LABEL;
-use crate::aggregation::decommitment_round::Decommitment;
-use crate::aggregation::proof_aggregation_round;
-use crate::language::GroupsPublicParametersAccessors;
-use crate::language::WitnessSpaceValue;
-use crate::Proof;
-use crate::{Error, Result};
+use crate::{
+    aggregation::{
+        commitment_round::COMMITMENT_LABEL, decommitment_round::Decommitment,
+        proof_aggregation_round,
+    },
+    language::{GroupsPublicParametersAccessors, WitnessSpaceValue},
+    Error, Proof, Result,
+};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ProofShare<const REPETITIONS: usize, Language: crate::Language<REPETITIONS>>(
