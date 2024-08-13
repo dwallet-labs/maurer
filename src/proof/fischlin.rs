@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::array;
 
 /// A Universally Composable (UC) Maurer Zero-Knowledge Proof via Fischlin's transform.
-/// Implements Chen and Lindell (2024): https://eprint.iacr.org/2024/526.pdf.
+/// Implements [Chen and Lindell (2024)](https://eprint.iacr.org/2024/526.pdf).
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Proof<
     // Number of parallel repetitions required to get a negligible soundness error.
@@ -37,7 +37,7 @@ impl<
     > Proof<REPETITIONS, Language, ProtocolContext>
 {
     /// Prove a Universally Composable (UC) Maurer zero-knowledge claim via Fischlin's transform.
-    /// Implements Chen and Lindell (2024), sections 2.2, 2.3: https://eprint.iacr.org/2024/526.pdf.
+    /// Implements [Chen and Lindell (2024)](https://eprint.iacr.org/2024/526.pdf), sections 2.2, 2.3.
     /// Returns the zero-knowledge proof.
     pub fn prove(
         protocol_context: &ProtocolContext,
