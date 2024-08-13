@@ -1,9 +1,9 @@
 // Author: dWallet Labs, Ltd.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
-use std::{marker::PhantomData, ops::Mul};
+use std::ops::Mul;
 
 use group::{CyclicGroupElement, Samplable};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::{language::GroupsPublicParameters, Result, SOUND_PROOFS_REPETITIONS};
 
@@ -18,20 +18,23 @@ use crate::{language::GroupsPublicParameters, Result, SOUND_PROOFS_REPETITIONS};
 ///
 /// In the paper, we have proved it for any prime known-order group; so it is safe to use with a
 /// `PrimeOrderGroupElement`.
-#[derive(Clone, Serialize, Deserialize, PartialEq, Debug, Eq)]
-pub struct Language<Scalar, GroupElement> {
-    _scalar_choice: PhantomData<Scalar>,
-    _group_element_choice: PhantomData<GroupElement>,
-}
+pub type Language<Scalar, GroupElement> =
+    private::Language<SOUND_PROOFS_REPETITIONS, Scalar, GroupElement>;
+
+/// Schnorr's Knowledge of Discrete Log Maurer Language.
+/// This is a generalized version that can be used for Fischlin proofs.
+pub type FischlinLanguage<const REPETITIONS: usize, Scalar, GroupElement> =
+    private::Language<SOUND_PROOFS_REPETITIONS, Scalar, GroupElement>;
 
 impl<
+        const REPETITIONS: usize,
         Scalar: group::GroupElement
             + Samplable
             + Mul<GroupElement, Output = GroupElement>
             + for<'r> Mul<&'r GroupElement, Output = GroupElement>
             + Copy,
         GroupElement: group::GroupElement,
-    > crate::Language<SOUND_PROOFS_REPETITIONS> for Language<Scalar, GroupElement>
+    > crate::Language<REPETITIONS> for Language<Scalar, GroupElement>
 {
     type WitnessSpaceGroupElement = Scalar;
     type StatementSpaceGroupElement = GroupElement;
@@ -107,6 +110,17 @@ impl<ScalarPublicParameters, GroupPublicParameters, GroupElementValue>
 pub type Proof<Scalar, GroupElement, ProtocolContext> =
     crate::Proof<SOUND_PROOFS_REPETITIONS, Language<Scalar, GroupElement>, ProtocolContext>;
 
+pub(super) mod private {
+    use serde::{Deserialize, Serialize};
+    use std::marker::PhantomData;
+
+    #[derive(Clone, Serialize, Deserialize, PartialEq, Debug, Eq)]
+    pub struct Language<const REPETITIONS: usize, Scalar, GroupElement> {
+        _scalar_choice: PhantomData<Scalar>,
+        _group_element_choice: PhantomData<GroupElement>,
+    }
+}
+
 #[cfg(any(test, feature = "benchmarking"))]
 #[allow(unused_imports)]
 mod tests {
@@ -120,9 +134,11 @@ mod tests {
     use super::*;
 
     pub(crate) type Lang = Language<secp256k1::Scalar, secp256k1::GroupElement>;
+    pub(crate) type FischlinLang<const REPETITIONS: usize> =
+        FischlinLanguage<REPETITIONS, secp256k1::Scalar, secp256k1::GroupElement>;
 
-    pub(crate) fn language_public_parameters(
-    ) -> language::PublicParameters<SOUND_PROOFS_REPETITIONS, Lang> {
+    pub(crate) fn language_public_parameters<const REPETITIONS: usize>(
+    ) -> language::PublicParameters<REPETITIONS, Lang> {
         let secp256k1_scalar_public_parameters = secp256k1::scalar::PublicParameters::default();
 
         let secp256k1_group_public_parameters =
@@ -140,7 +156,7 @@ mod tests {
     #[case(2)]
     #[case(3)]
     fn valid_proof_verifies(#[case] batch_size: usize) {
-        let language_public_parameters = language_public_parameters();
+        let language_public_parameters = language_public_parameters::<SOUND_PROOFS_REPETITIONS>();
 
         test_helpers::valid_proof_verifies::<SOUND_PROOFS_REPETITIONS, Lang>(
             &language_public_parameters,
@@ -149,12 +165,43 @@ mod tests {
         )
     }
 
+    #[test]
+    fn valid_fischlin_proof_verifies() {
+        let language_public_parameters32 = language_public_parameters::<32>();
+        test_helpers::valid_fischlin_proof_verifies::<32, FischlinLang<32>>(
+            &language_public_parameters32,
+            &mut OsRng,
+        );
+
+        let language_public_parameters16 = language_public_parameters::<16>();
+        test_helpers::valid_fischlin_proof_verifies::<16, FischlinLang<16>>(
+            &language_public_parameters16,
+            &mut OsRng,
+        );
+    }
+
+    #[test]
+    fn invalid_fischlin_proof_fails_verification() {
+        let language_public_parameters16 = language_public_parameters::<16>();
+
+        test_helpers::invalid_fischlin_proof_fails_verification::<16, FischlinLang<16>>(
+            &language_public_parameters16,
+            &mut OsRng,
+        );
+
+        let language_public_parameters22 = language_public_parameters::<22>();
+        test_helpers::invalid_fischlin_proof_fails_verification::<22, FischlinLang<22>>(
+            &language_public_parameters22,
+            &mut OsRng,
+        );
+    }
+
     #[rstest]
     #[case(1)]
     #[case(2)]
     #[case(3)]
     fn invalid_proof_fails_verification(#[case] batch_size: usize) {
-        let language_public_parameters = language_public_parameters();
+        let language_public_parameters = language_public_parameters::<SOUND_PROOFS_REPETITIONS>();
 
         // No invalid values as secp256k1 statically defines group,
         // `k256::AffinePoint` assures deserialized values are on curve,
@@ -173,7 +220,7 @@ mod tests {
     #[case(2)]
     #[case(3)]
     fn proof_over_invalid_public_parameters_fails_verification(#[case] batch_size: usize) {
-        let verifier_public_parameters = language_public_parameters();
+        let verifier_public_parameters = language_public_parameters::<SOUND_PROOFS_REPETITIONS>();
         let mut prover_public_parameters = verifier_public_parameters.clone();
 
         let secp256k1_group_public_parameters =
@@ -220,7 +267,7 @@ mod tests {
     #[case(2)]
     #[case(3)]
     fn proof_with_incomplete_transcript_fails(#[case] batch_size: usize) {
-        let language_public_parameters = language_public_parameters();
+        let language_public_parameters = language_public_parameters::<SOUND_PROOFS_REPETITIONS>();
 
         test_helpers::proof_with_incomplete_transcript_fails::<SOUND_PROOFS_REPETITIONS, Lang>(
             &language_public_parameters,
@@ -236,7 +283,7 @@ mod tests {
     #[case(2, 3)]
     #[case(5, 2)]
     fn aggregates(#[case] number_of_parties: usize, #[case] batch_size: usize) {
-        let language_public_parameters = language_public_parameters();
+        let language_public_parameters = language_public_parameters::<SOUND_PROOFS_REPETITIONS>();
 
         test_helpers::aggregates::<SOUND_PROOFS_REPETITIONS, Lang>(
             &language_public_parameters,
@@ -253,7 +300,7 @@ mod tests {
         #[case] number_of_parties: usize,
         #[case] batch_size: usize,
     ) {
-        let language_public_parameters = language_public_parameters();
+        let language_public_parameters = language_public_parameters::<SOUND_PROOFS_REPETITIONS>();
 
         test_helpers::unresponsive_parties_aborts_session_identifiably::<
             SOUND_PROOFS_REPETITIONS,
@@ -269,7 +316,7 @@ mod tests {
         #[case] number_of_parties: usize,
         #[case] batch_size: usize,
     ) {
-        let language_public_parameters = language_public_parameters();
+        let language_public_parameters = language_public_parameters::<SOUND_PROOFS_REPETITIONS>();
 
         test_helpers::wrong_decommitment_aborts_session_identifiably::<
             SOUND_PROOFS_REPETITIONS,
@@ -285,7 +332,7 @@ mod tests {
         #[case] number_of_parties: usize,
         #[case] batch_size: usize,
     ) {
-        let language_public_parameters = language_public_parameters();
+        let language_public_parameters = language_public_parameters::<SOUND_PROOFS_REPETITIONS>();
 
         test_helpers::failed_proof_share_verification_aborts_session_identifiably::<
             SOUND_PROOFS_REPETITIONS,
@@ -298,23 +345,35 @@ mod tests {
 pub(crate) mod benches {
     use criterion::Criterion;
 
+    use crate::knowledge_of_discrete_log::tests::FischlinLang;
     use crate::{
         knowledge_of_discrete_log::tests::{language_public_parameters, Lang},
         test_helpers, SOUND_PROOFS_REPETITIONS,
     };
 
     pub(crate) fn benchmark(_c: &mut Criterion) {
-        let language_public_parameters = language_public_parameters();
+        let maurer_language_public_parameters =
+            language_public_parameters::<SOUND_PROOFS_REPETITIONS>();
 
         test_helpers::benchmark_proof::<SOUND_PROOFS_REPETITIONS, Lang>(
-            &language_public_parameters,
+            &maurer_language_public_parameters,
             None,
             false,
             None,
         );
 
+        let fischlin_language_public_parameters32 = language_public_parameters::<32>();
+        test_helpers::benchmark_fischlin_proof::<32, FischlinLang<32>>(
+            &fischlin_language_public_parameters32,
+        );
+
+        let fischlin_language_public_parameters16 = language_public_parameters::<16>();
+        test_helpers::benchmark_fischlin_proof::<16, FischlinLang<16>>(
+            &fischlin_language_public_parameters16,
+        );
+
         test_helpers::benchmark_aggregation::<SOUND_PROOFS_REPETITIONS, Lang>(
-            &language_public_parameters,
+            &maurer_language_public_parameters,
             None,
             false,
             None,
