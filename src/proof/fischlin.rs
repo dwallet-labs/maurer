@@ -112,7 +112,7 @@ impl<
     }
 
     /// Verify a Universally Composable (UC) Maurer zero-knowledge claim via Fischlin's transform.
-    /// Implements Chen and Lindell (2024), sections 2.2, 2.3: https://eprint.iacr.org/2024/526.pdf.
+    /// Implements [Chen and Lindell (2024)](https://eprint.iacr.org/2024/526.pdf), sections 2.2, 2.3.
     pub fn verify(
         &self,
         protocol_context: &ProtocolContext,
@@ -219,6 +219,7 @@ pub(crate) mod test_helpers {
     use criterion::measurement::{Measurement, WallTime};
     use rand_core::OsRng;
     use std::marker::PhantomData;
+    use std::time::Duration;
 
     pub fn generate_valid_fischlin_proof<
         const REPETITIONS: usize,
@@ -322,25 +323,34 @@ pub(crate) mod test_helpers {
             "\nLanguage Name, Repetitions, Fischlin Hash Bits, Prove Time (Incl. Statement Computation) (ms), Verification Time (ms)",
         );
 
-        let now = measurement.start();
-        let (proof, statement) = generate_valid_fischlin_proof::<REPETITIONS, Language>(
-            language_public_parameters,
-            &mut OsRng,
-        );
-        let prove_time = measurement.end(now);
+        let mut sum = 0;
+        let mut verify_time = Duration::default();
+        for i in 1..=10 {
+            let now = measurement.start();
+            let (proof, statement) = generate_valid_fischlin_proof::<REPETITIONS, Language>(
+                language_public_parameters,
+                &mut OsRng,
+            );
+            let prove_time = measurement.end(now);
 
-        let now = measurement.start();
-        proof
-            .verify(&PhantomData, language_public_parameters, statement)
-            .unwrap();
-        let verify_time = measurement.end(now);
+            sum += prove_time.as_millis();
+
+            if i == 10 {
+                let now = measurement.start();
+                proof
+                    .verify(&PhantomData, language_public_parameters, statement)
+                    .unwrap();
+                verify_time = measurement.end(now);
+            }
+        }
+        let prove_time = sum / 10;
 
         println!(
             "{}, {}, {}, {:?}, {:?}",
             Language::NAME,
             REPETITIONS,
             (ComputationalSecuritySizedNumber::BITS + (REPETITIONS - 1)) / REPETITIONS,
-            prove_time.as_millis(),
+            prove_time,
             verify_time.as_millis()
         );
     }
