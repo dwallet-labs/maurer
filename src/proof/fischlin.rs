@@ -36,22 +36,22 @@ impl<
         ProtocolContext: Clone + Serialize,
     > Proof<REPETITIONS, Language, ProtocolContext>
 {
-    /// Prove a Universally Composable (UC) Maurer zero-knowledge claim via Fischlin's transform.
+    /// Prove a Universally Composable (UC) Extractable zero-knowledge (ZK) Maurer statement via Fischlin's transform.
     /// Implements [Chen and Lindell (2024)](https://eprint.iacr.org/2024/526.pdf), sections 2.2, 2.3.
     /// Returns the zero-knowledge proof.
     pub fn prove(
         protocol_context: &ProtocolContext,
         language_public_parameters: &Language::PublicParameters,
-        witness: Language::WitnessSpaceGroupElement,
+        witness: Language::WitnessSpaceGroupElement, // $w$
         rng: &mut impl CryptoRngCore,
     ) -> Result<(Self, Language::StatementSpaceGroupElement)> {
         if REPETITIONS == 0 || REPETITIONS > ComputationalSecuritySizedNumber::BITS {
             return Err(Error::UnsupportedRepetitions);
         }
 
-        let statement = Language::homomorphose(&witness, language_public_parameters)?;
+        let statement = Language::homomorphose(&witness, language_public_parameters)?; // $x$
 
-        let (randomizers, statement_masks) =
+        let (randomizers, statement_masks) = // $(\vec{\sigma}, \vec{m_i})
             super::Proof::<REPETITIONS, Language, ProtocolContext>::sample_randomizers_and_statement_masks(language_public_parameters, rng)?;
 
         let statement_masks_values =
@@ -71,8 +71,8 @@ impl<
         )>; REPETITIONS] = array::from_fn(|i| {
             let randomizer = randomizers[i].clone();
 
-            let mut challenge = ComputationalSecuritySizedNumber::ZERO;
-            let mut response = randomizer;
+            let mut challenge = ComputationalSecuritySizedNumber::ZERO; // $e_i$
+            let mut response = randomizer; // $z_i$
 
             loop {
                 if Self::hash_starts_with_b_zeros(common_hash, i, challenge, &response.value())? {
@@ -111,7 +111,7 @@ impl<
         Ok((uc_proof, statement))
     }
 
-    /// Verify a Universally Composable (UC) Maurer zero-knowledge claim via Fischlin's transform.
+    /// Verify a Universally Composable (UC) Extractable Maurer zero-knowledge claim via Fischlin's transform.
     /// Implements [Chen and Lindell (2024)](https://eprint.iacr.org/2024/526.pdf), sections 2.2, 2.3.
     pub fn verify(
         &self,
@@ -196,13 +196,14 @@ impl<
         let hash: ComputationalSecuritySizedNumber = transcript.challenge(b"hash");
 
         // TODO: better name?
-        // Compute $b$ such that $b \cdot \rho >= \kappa$
+        // Compute the difficulty target $b$ such that $b \cdot \rho >= \kappa$.
+        // This determines the number of tralining zeros in H_b(common_h, i, e_i, z_i).
         let hash_zero_bits =
             (ComputationalSecuritySizedNumber::BITS + (REPETITIONS - 1)) / REPETITIONS;
 
         // TODO: verify correctness
         Ok(
-            (hash & ComputationalSecuritySizedNumber::from((1u64 << hash_zero_bits) - 1))
+            (hash & ((ComputationalSecuritySizedNumber::from(1u64) << hash_zero_bits) - 1))
                 == ComputationalSecuritySizedNumber::ZERO,
         )
     }
