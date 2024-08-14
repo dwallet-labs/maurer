@@ -75,7 +75,7 @@ impl<
             let mut response = randomizer; // $z_i$
 
             loop {
-                if Self::hash_starts_with_b_zeros(common_hash, i, challenge, &response.value())? {
+                if Self::hash_hits_target(common_hash, i, challenge, &response.value())? {
                     break;
                 }
 
@@ -133,7 +133,7 @@ impl<
             .zip(self.maurer_proof.responses)
             .enumerate()
             .map(|(i, (challenge, response))| {
-                Self::hash_starts_with_b_zeros(common_hash, i, challenge, &response)
+                Self::hash_hits_target(common_hash, i, challenge, &response)
             })
             .collect();
 
@@ -142,7 +142,7 @@ impl<
         } else if hash_checks
             .into_iter()
             .map(|res| res.unwrap())
-            .any(|hash_starts_with_b_zeros| !hash_starts_with_b_zeros)
+            .any(|is_target| !is_target)
         {
             return Err(proof::Error::ProofVerification)?;
         }
@@ -172,8 +172,9 @@ impl<
         Ok(transcript.challenge(b"common hash"))
     }
 
-    /// Performs the Fischlin transformation check that $h_i = H(common-h, i, e_i, z_i)$ starts with $b$ zeros.
-    fn hash_starts_with_b_zeros(
+    /// Performs the Fischlin transformation check that $h_i = H(common-h, i, e_i, z_i)$ hits the target,
+    /// i.e. it starts with `target_bits` $b$ zeros.
+    fn hash_hits_target(
         common_hash: <ComputationalSecuritySizedNumber as Concat>::Output,
         i: usize,
         challenge: ComputationalSecuritySizedNumber,
@@ -195,17 +196,14 @@ impl<
         // Finalize the hash computation to get $h_i = H(common-h, i, e_i, z_i)$.
         let hash: ComputationalSecuritySizedNumber = transcript.challenge(b"hash");
 
-        // TODO: better name?
-        // Compute the difficulty target $b$ such that $b \cdot \rho >= \kappa$.
+        // Compute the number of zero bits in the target $b$ such that $b \cdot \rho >= \kappa$.
         // This determines the number of tralining zeros in H_b(common_h, i, e_i, z_i).
-        let hash_zero_bits =
+        let target_bits =
             (ComputationalSecuritySizedNumber::BITS + (REPETITIONS - 1)) / REPETITIONS;
+        let target_mask = ComputationalSecuritySizedNumber::from(1u64 << target_bits)
+            .wrapping_sub(&ComputationalSecuritySizedNumber::ONE);
 
-        // TODO: verify correctness
-        Ok(
-            (hash & ((ComputationalSecuritySizedNumber::from(1u64) << hash_zero_bits) - 1))
-                == ComputationalSecuritySizedNumber::ZERO,
-        )
+        Ok(hash & target_mask == ComputationalSecuritySizedNumber::ZERO)
     }
 }
 
