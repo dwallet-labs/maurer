@@ -21,7 +21,7 @@ use crate::{language::GroupsPublicParameters, Result, SOUND_PROOFS_REPETITIONS};
 pub type Language<Scalar, GroupElement> =
     private::Language<SOUND_PROOFS_REPETITIONS, Scalar, GroupElement>;
 
-/// Schnorr's Knowledge of Discrete Log Maurer Language.
+/// Knowledge of Discrete Log Maurer Language.
 /// This is a generalized version that can be used for Fischlin proofs.
 pub type FischlinLanguage<const REPETITIONS: usize, Scalar, GroupElement> =
     private::Language<SOUND_PROOFS_REPETITIONS, Scalar, GroupElement>;
