@@ -15,7 +15,7 @@ use std::array;
 /// Implements [Chen and Lindell (2024)](https://eprint.iacr.org/2024/526.pdf).
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Proof<
-    // Number of parallel repetitions required to get a negligible soundness error.
+    // Number of parallel repetitions $\rho$ required to get a negligible knowledge error.
     const REPETITIONS: usize,
     // The language we are proving
     Language: language::Language<REPETITIONS>,
