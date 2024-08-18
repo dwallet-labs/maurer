@@ -12,6 +12,7 @@ pub mod knowledge_of_discrete_log;
 
 pub mod language;
 mod proof;
+pub mod vector_commitment_of_discrete_log;
 
 #[cfg(any(test, feature = "benchmarking"))]
 #[allow(unused_imports)]
@@ -64,5 +65,6 @@ criterion::criterion_group!(
     knowledge_of_discrete_log::benches::benchmark,
     knowledge_of_decommitment::benches::benchmark,
     committment_of_discrete_log::benches::benchmark,
+    vector_commitment_of_discrete_log::benches::benchmark,
     discrete_log_ratio_of_committed_values::benches::benchmark,
 );
