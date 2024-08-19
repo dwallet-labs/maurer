@@ -364,7 +364,10 @@ mod tests {
         >()
         .unwrap();
 
-        let generator = secp256k1_group_public_parameters.generator;
+        let generator = secp256k1::group_element::GroupElement::generator_from_public_parameters(
+            &secp256k1_group_public_parameters,
+        )
+        .unwrap();
 
         PublicParameters::new::<
             { secp256k1::SCALAR_LIMBS },
@@ -377,7 +380,7 @@ mod tests {
             secp256k1_scalar_public_parameters,
             secp256k1_group_public_parameters,
             pedersen_public_parameters,
-            [generator; 2],
+            [generator.value(), (generator + generator).value()],
         )
     }
 
@@ -445,7 +448,7 @@ mod tests {
 
         assert_eq!(
             *statements[0].linear_combination_of_discrete_logs(),
-            first_message * generator + second_message * generator
+            first_message * generator + second_message * (generator + generator)
         );
     }
 
