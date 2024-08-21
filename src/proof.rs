@@ -1,13 +1,14 @@
 // Author: dWallet Labs, Ltd.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
-use std::{array, marker::PhantomData};
+pub mod fischlin;
 
 use crypto_bigint::rand_core::CryptoRngCore;
 use group::{helpers::FlatMapResults, ComputationalSecuritySizedNumber, GroupElement, Samplable};
 use merlin::Transcript;
 use proof::TranscriptProtocol;
 use serde::{Deserialize, Serialize};
+use std::{array, marker::PhantomData};
 
 use crate::{
     language,
@@ -203,7 +204,6 @@ impl<
     }
 
     /// Verify a batched Maurer zero-knowledge proof.
-
     pub fn verify(
         &self,
         protocol_context: &ProtocolContext,
@@ -395,7 +395,7 @@ impl<
 }
 
 // These tests helpers can be used for different `group` implementations,
-// therefor they need to be exported.
+// therefore they need to be exported.
 // Since exporting rust `#[cfg(test)]` is impossible, they exist in a dedicated feature-gated module.
 #[cfg(any(test, feature = "benchmarking"))]
 #[allow(unused_imports)]
