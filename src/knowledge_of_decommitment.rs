@@ -267,6 +267,37 @@ mod tests {
         >(&language_public_parameters, batch_size, &mut OsRng)
     }
 
+    #[test]
+    fn valid_fischlin_proof_verifies() {
+        let language_public_parameters32 = language_public_parameters::<32, 1>();
+        test_helpers::valid_fischlin_proof_verifies::<32, Lang<32, 1>>(
+            &language_public_parameters32,
+            &mut OsRng,
+        );
+
+        let language_public_parameters16 = language_public_parameters::<16, 1>();
+        test_helpers::valid_fischlin_proof_verifies::<16, Lang<16, 1>>(
+            &language_public_parameters16,
+            &mut OsRng,
+        );
+    }
+
+    #[test]
+    fn invalid_fischlin_proof_fails_verification() {
+        let language_public_parameters16 = language_public_parameters::<16, 1>();
+
+        test_helpers::invalid_fischlin_proof_fails_verification::<16, Lang<16, 1>>(
+            &language_public_parameters16,
+            &mut OsRng,
+        );
+
+        let language_public_parameters22 = language_public_parameters::<22, 1>();
+        test_helpers::invalid_fischlin_proof_fails_verification::<22, Lang<22, 1>>(
+            &language_public_parameters22,
+            &mut OsRng,
+        );
+    }
+
     #[rstest]
     #[case(1)]
     #[case(2)]
@@ -416,6 +447,17 @@ pub(crate) mod benches {
             false,
             None,
         );
+
+        let fischlin_language_public_parameters32 = language_public_parameters::<32, 1>();
+        test_helpers::benchmark_fischlin_proof::<32, Lang<32, 1>>(
+            &fischlin_language_public_parameters32,
+        );
+
+        let fischlin_language_public_parameters16 = language_public_parameters::<16, 1>();
+        test_helpers::benchmark_fischlin_proof::<16, Lang<16, 1>>(
+            &fischlin_language_public_parameters16,
+        );
+
         test_helpers::benchmark_aggregation::<
             SOUND_PROOFS_REPETITIONS,
             Lang<SOUND_PROOFS_REPETITIONS, 1>,

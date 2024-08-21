@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 pub use language::Language;
-pub use proof::{Proof, BIT_SOUNDNESS_PROOFS_REPETITIONS, SOUND_PROOFS_REPETITIONS};
+pub use proof::{fischlin, Proof, BIT_SOUNDNESS_PROOFS_REPETITIONS, SOUND_PROOFS_REPETITIONS};
 
 pub mod aggregation;
 pub mod committment_of_discrete_log;
@@ -20,6 +20,7 @@ pub mod vector_commitment_of_discrete_log;
 pub mod test_helpers {
     pub use crate::aggregation::test_helpers::*;
     pub use crate::language::test_helpers::*;
+    pub use crate::proof::fischlin::test_helpers::*;
     pub use crate::proof::test_helpers::*;
 }
 
@@ -34,7 +35,7 @@ pub enum Error {
     Commitment(#[from] commitment::Error),
     #[error("aggregation error")]
     Aggregation(#[from] ::proof::aggregation::Error),
-    #[error("unsupported repetitions: must be either 1 or 128")]
+    #[error("unsupported repetitions")]
     UnsupportedRepetitions,
     #[error("invalid public parameters")]
     InvalidPublicParameters,
