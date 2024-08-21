@@ -5,10 +5,7 @@ use core::fmt::Debug;
 use group::{ComputationalSecuritySizedNumber, GroupElement, Samplable};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    proof::{BIT_SOUNDNESS_PROOFS_REPETITIONS, SOUND_PROOFS_REPETITIONS},
-    Result,
-};
+use crate::{proof::BIT_SOUNDNESS_PROOFS_REPETITIONS, Error, Result};
 
 /// A Maurer Zero-Knowledge Proof Language.
 ///
@@ -47,12 +44,14 @@ pub trait Language<
 
     /// The number of bits to use for the challenge (per repetition).
     fn challenge_bits() -> Result<usize> {
-        if REPETITIONS == SOUND_PROOFS_REPETITIONS {
-            Ok(ComputationalSecuritySizedNumber::BITS)
-        } else if REPETITIONS == BIT_SOUNDNESS_PROOFS_REPETITIONS {
+        if REPETITIONS == 0 || REPETITIONS > ComputationalSecuritySizedNumber::BITS {
+            return Err(Error::UnsupportedRepetitions);
+        }
+
+        if REPETITIONS == BIT_SOUNDNESS_PROOFS_REPETITIONS {
             Ok(1)
         } else {
-            Err(crate::Error::UnsupportedRepetitions)
+            Ok(ComputationalSecuritySizedNumber::BITS)
         }
     }
 
