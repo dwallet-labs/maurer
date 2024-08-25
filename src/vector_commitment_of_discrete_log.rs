@@ -249,14 +249,7 @@ impl<
         GroupElementValue,
     >
 {
-    pub fn new<
-        const SCALAR_LIMBS: usize,
-        Scalar,
-        GroupElement,
-        RandomnessSpaceGroupElement,
-        CommitmentSpaceGroupElement,
-        CommitmentScheme,
-    >(
+    pub fn new<const SCALAR_LIMBS: usize, Scalar, GroupElement, CommitmentScheme>(
         scalar_group_public_parameters: Scalar::PublicParameters,
         group_public_parameters: GroupElement::PublicParameters,
         commitment_scheme_public_parameters: CommitmentScheme::PublicParameters,
@@ -273,15 +266,13 @@ impl<
             Value = GroupElementValue,
             PublicParameters = GroupPublicParameters,
         >,
-        RandomnessSpaceGroupElement:
+        CommitmentScheme::RandomnessSpaceGroupElement:
             group::GroupElement<PublicParameters = RandomnessSpacePublicParameters>,
-        CommitmentSpaceGroupElement:
+        CommitmentScheme::CommitmentSpaceGroupElement:
             group::GroupElement<PublicParameters = CommitmentSpacePublicParameters>,
         CommitmentScheme: HomomorphicCommitmentScheme<
             SCALAR_LIMBS,
             MessageSpaceGroupElement = self_product::GroupElement<BATCH_SIZE, Scalar>,
-            RandomnessSpaceGroupElement = RandomnessSpaceGroupElement,
-            CommitmentSpaceGroupElement = CommitmentSpaceGroupElement,
             PublicParameters = CommitmentSchemePublicParameters,
         >,
         CommitmentSchemePublicParameters: AsRef<
@@ -373,8 +364,6 @@ mod tests {
             { secp256k1::SCALAR_LIMBS },
             secp256k1::Scalar,
             secp256k1::GroupElement,
-            secp256k1::Scalar,
-            secp256k1::GroupElement,
             Pedersen<2, { secp256k1::SCALAR_LIMBS }, secp256k1::Scalar, secp256k1::GroupElement>,
         >(
             secp256k1_scalar_public_parameters,
@@ -404,8 +393,6 @@ mod tests {
             { secp256k1::SCALAR_LIMBS },
             secp256k1::Scalar,
             secp256k1::GroupElement,
-            self_product::GroupElement<2, secp256k1::Scalar>,
-            self_product::GroupElement<2, secp256k1::GroupElement>,
             MultiPedersen<
                 2,
                 { secp256k1::SCALAR_LIMBS },
