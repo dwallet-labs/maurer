@@ -23,7 +23,7 @@ pub(super) mod test_helpers {
     use crate::Language;
     use criterion::measurement::{Measurement, WallTime};
     use group::PartyID;
-    use proof::aggregation::AggregationSession;
+    use proof::aggregation::Party;
     use rand_core::OsRng;
     use std::collections::{HashMap, HashSet};
     use std::iter;
@@ -132,8 +132,9 @@ pub(super) mod test_helpers {
             proof::mpc::test_helpers::session_terminates_successfully(
                 commitment_round_parties
                     .into_iter()
-                    .map(|(party_id, party)| (party_id, AggregationSession::from(party)))
+                    .map(|(party_id, party)| (party_id, Party::from(party)))
                     .collect(),
+                &(),
             )
             .unwrap();
 
