@@ -402,6 +402,25 @@ mod tests {
     }
 
     #[rstest]
+    #[case(1, 1)]
+    #[case(1, 2)]
+    #[case(2, 1)]
+    #[case(2, 3)]
+    #[case(5, 2)]
+    fn mpc_session_terminates_successfully(
+        #[case] number_of_parties: usize,
+        #[case] batch_size: usize,
+    ) {
+        let language_public_parameters = language_public_parameters();
+
+        test_helpers::mpc_session_terminates_successfully::<SOUND_PROOFS_REPETITIONS, Lang>(
+            &language_public_parameters,
+            number_of_parties,
+            batch_size,
+        );
+    }
+
+    #[rstest]
     #[case(2, 1)]
     #[case(3, 1)]
     #[case(5, 2)]

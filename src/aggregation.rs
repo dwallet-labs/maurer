@@ -19,16 +19,16 @@ pub type Output<const REPETITIONS: usize, Language, ProtocolContext> = (
 #[cfg(any(test, feature = "benchmarking"))]
 #[allow(unused_imports)]
 pub(super) mod test_helpers {
+    use crate::test_helpers::sample_witnesses;
+    use crate::Language;
     use criterion::measurement::{Measurement, WallTime};
     use group::PartyID;
+    use proof::aggregation::AggregationSession;
     use rand_core::OsRng;
     use std::collections::{HashMap, HashSet};
     use std::iter;
     use std::marker::PhantomData;
     use std::time::Duration;
-
-    use crate::test_helpers::sample_witnesses;
-    use crate::Language;
 
     use super::*;
 
@@ -107,6 +107,35 @@ pub(super) mod test_helpers {
 
         let (.., (proof, statements)) =
             proof::aggregation::test_helpers::aggregates(commitment_round_parties);
+
+        assert!(
+            proof
+                .verify(&PhantomData, language_public_parameters, statements)
+                .is_ok(),
+            "valid aggregated proofs should verify"
+        );
+    }
+
+    /// Test that the MPC Session for the Maurer aggregation protocol for `Lang` succeeds.
+    pub fn mpc_session_terminates_successfully<
+        const REPETITIONS: usize,
+        Lang: Language<REPETITIONS>,
+    >(
+        language_public_parameters: &Lang::PublicParameters,
+        number_of_parties: usize,
+        batch_size: usize,
+    ) {
+        let (_, commitment_round_parties) =
+            setup::<REPETITIONS, Lang>(language_public_parameters, number_of_parties, batch_size);
+
+        let (proof, statements): Output<REPETITIONS, Lang, PhantomData<()>> =
+            proof::mpc::test_helpers::session_terminates_successfully(
+                commitment_round_parties
+                    .into_iter()
+                    .map(|(party_id, party)| (party_id, AggregationSession::from(party)))
+                    .collect(),
+            )
+            .unwrap();
 
         assert!(
             proof
