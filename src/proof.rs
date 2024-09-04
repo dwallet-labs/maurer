@@ -512,20 +512,16 @@ pub(super) mod test_helpers {
             .map(|party_id| {
                 let party_id: u16 = (party_id + 1).try_into().unwrap();
 
-                let witnesses = sample_witnesses::<REPETITIONS, Lang>(
-                    language_public_parameters,
-                    batch_size,
-                    rng,
-                );
-
                 let party: proof::aggregation::asynchronous::Party<
                     Proof<REPETITIONS, Lang, PhantomData<()>>,
-                > = proof::aggregation::asynchronous::Party::Proof {
-                    witnesses,
-                    language_public_parameters: language_public_parameters.clone(),
-                    protocol_context: PhantomData,
+                > = proof::aggregation::asynchronous::Party::new_proof_round_party(
+                    language_public_parameters.clone(),
+                    PhantomData,
                     threshold,
-                };
+                    batch_size,
+                    rng,
+                )
+                .unwrap();
 
                 (party_id, party)
             })
