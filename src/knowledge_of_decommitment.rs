@@ -397,6 +397,32 @@ mod tests {
     }
 
     #[rstest]
+    #[case(1, 1, 1)]
+    #[case(1, 1, 2)]
+    #[case(2, 2, 1)]
+    #[case(3, 2, 1)]
+    #[case(5, 3, 2)]
+    fn statement_aggregates_asynchronously(
+        #[case] number_of_parties: usize,
+        #[case] threshold: usize,
+        #[case] batch_size: usize,
+    ) {
+        let language_public_parameters =
+            language_public_parameters::<SOUND_PROOFS_REPETITIONS, 1>();
+
+        test_helpers::statement_aggregates_asynchronously::<
+            SOUND_PROOFS_REPETITIONS,
+            Lang<SOUND_PROOFS_REPETITIONS, 1>,
+        >(
+            &language_public_parameters,
+            threshold.try_into().unwrap(),
+            number_of_parties,
+            batch_size,
+            &mut OsRng,
+        );
+    }
+
+    #[rstest]
     #[case(2, 1)]
     #[case(3, 1)]
     #[case(5, 2)]

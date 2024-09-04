@@ -3,9 +3,12 @@
 use core::fmt::Debug;
 
 use group::{ComputationalSecuritySizedNumber, GroupElement, Samplable};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::{proof::BIT_SOUNDNESS_PROOFS_REPETITIONS, Error, Result};
+
+// TODO: remove after refactor
+pub use proof::{GroupsPublicParameters, GroupsPublicParametersAccessors};
 
 /// A Maurer Zero-Knowledge Proof Language.
 ///
@@ -89,50 +92,14 @@ pub type StatementSpacePublicParameters<const REPETITIONS: usize, L> =
 pub type StatementSpaceValue<const REPETITIONS: usize, L> =
     group::Value<StatementSpaceGroupElement<REPETITIONS, L>>;
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct GroupsPublicParameters<WitnessSpacePublicParameters, StatementSpacePublicParameters> {
-    pub witness_space_public_parameters: WitnessSpacePublicParameters,
-    pub statement_space_public_parameters: StatementSpacePublicParameters,
-}
-
-pub trait GroupsPublicParametersAccessors<
-    'a,
-    WitnessSpacePublicParameters: 'a,
-    StatementSpacePublicParameters: 'a,
->:
-    AsRef<GroupsPublicParameters<WitnessSpacePublicParameters, StatementSpacePublicParameters>>
-{
-    fn witness_space_public_parameters(&'a self) -> &'a WitnessSpacePublicParameters {
-        &self.as_ref().witness_space_public_parameters
-    }
-
-    fn statement_space_public_parameters(&'a self) -> &'a StatementSpacePublicParameters {
-        &self.as_ref().statement_space_public_parameters
-    }
-}
-
-impl<
-        'a,
-        WitnessSpacePublicParameters: 'a,
-        StatementSpacePublicParameters: 'a,
-        T: AsRef<GroupsPublicParameters<WitnessSpacePublicParameters, StatementSpacePublicParameters>>,
-    >
-    GroupsPublicParametersAccessors<
-        'a,
-        WitnessSpacePublicParameters,
-        StatementSpacePublicParameters,
-    > for T
-{
-}
-
 #[cfg(any(test, feature = "benchmarking"))]
 #[allow(unused_imports)]
 pub(super) mod test_helpers {
-    use core::iter;
-
-    use crypto_bigint::rand_core::CryptoRngCore;
-
     use super::*;
+    use crate::aggregation::Output;
+    use core::iter;
+    use crypto_bigint::rand_core::CryptoRngCore;
+    use std::marker::PhantomData;
 
     pub fn sample_witnesses<const REPETITIONS: usize, Lang: Language<REPETITIONS>>(
         language_public_parameters: &Lang::PublicParameters,

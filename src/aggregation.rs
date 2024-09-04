@@ -134,7 +134,9 @@ pub(super) mod test_helpers {
                     .into_iter()
                     .map(|(party_id, party)| (party_id, Party::from(party)))
                     .collect(),
+                None,
                 &(),
+                &mut OsRng,
             )
             .unwrap();
 

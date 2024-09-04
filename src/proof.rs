@@ -3,18 +3,18 @@
 
 pub mod fischlin;
 
-use crypto_bigint::rand_core::CryptoRngCore;
-use group::{helpers::FlatMapResults, ComputationalSecuritySizedNumber, GroupElement, Samplable};
-use merlin::Transcript;
-use proof::TranscriptProtocol;
-use serde::{Deserialize, Serialize};
-use std::{array, marker::PhantomData};
-
 use crate::{
     language,
     language::{GroupsPublicParametersAccessors, StatementSpaceValue, WitnessSpaceValue},
     Error, Result,
 };
+use crypto_bigint::rand_core::CryptoRngCore;
+use group::{helpers::FlatMapResults, ComputationalSecuritySizedNumber, GroupElement, Samplable};
+use merlin::Transcript;
+use proof::TranscriptProtocol;
+use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
+use std::{array, marker::PhantomData};
 
 /// The number of repetitions used for sound Maurer proofs, i.e., proofs that achieve negligible
 /// soundness error.
@@ -394,19 +394,54 @@ impl<
     }
 }
 
+impl<
+        const REPETITIONS: usize,
+        Language: language::Language<REPETITIONS>,
+        ProtocolContext: Clone + Serialize + Debug + PartialEq + Eq,
+    > proof::Proof for Proof<REPETITIONS, Language, ProtocolContext>
+{
+    type Error = Error;
+    type ProtocolContext = ProtocolContext;
+    type PublicParameters = Language::PublicParameters;
+    type WitnessSpaceGroupElement = Language::WitnessSpaceGroupElement;
+    type StatementSpaceGroupElement = Language::StatementSpaceGroupElement;
+
+    fn prove(
+        protocol_context: &Self::ProtocolContext,
+        language_public_parameters: &Self::PublicParameters,
+        witnesses: Vec<Self::WitnessSpaceGroupElement>,
+        rng: &mut impl CryptoRngCore,
+    ) -> std::result::Result<(Self, Vec<Self::StatementSpaceGroupElement>), Self::Error> {
+        Proof::prove(protocol_context, language_public_parameters, witnesses, rng)
+    }
+
+    fn verify(
+        &self,
+        protocol_context: &Self::ProtocolContext,
+        language_public_parameters: &Self::PublicParameters,
+        statements: Vec<Self::StatementSpaceGroupElement>,
+        _rng: &mut impl CryptoRngCore,
+    ) -> std::result::Result<(), Self::Error> {
+        self.verify(protocol_context, language_public_parameters, statements)
+    }
+}
+
 // These tests helpers can be used for different `group` implementations,
 // therefore they need to be exported.
 // Since exporting rust `#[cfg(test)]` is impossible, they exist in a dedicated feature-gated module.
 #[cfg(any(test, feature = "benchmarking"))]
 #[allow(unused_imports)]
 pub(super) mod test_helpers {
+    use std::collections::HashMap;
     use std::marker::PhantomData;
 
-    use criterion::measurement::{Measurement, WallTime};
-    use rand_core::OsRng;
-
     use super::*;
+    use crate::aggregation::Output;
     use crate::test_helpers::{sample_witness, sample_witnesses};
+    use crate::Language;
+    use criterion::measurement::{Measurement, WallTime};
+    use group::PartyID;
+    use rand_core::OsRng;
 
     pub fn generate_valid_proof<
         const REPETITIONS: usize,
@@ -460,6 +495,49 @@ pub(super) mod test_helpers {
                 .is_ok(),
             "valid proofs should verify"
         );
+    }
+
+    /// Test that the MPC Session for the Maurer statement aggregation asynchronous protocol for `Lang` succeeds.
+    pub fn statement_aggregates_asynchronously<
+        const REPETITIONS: usize,
+        Lang: Language<REPETITIONS>,
+    >(
+        language_public_parameters: &Lang::PublicParameters,
+        threshold: PartyID,
+        number_of_parties: usize,
+        batch_size: usize,
+        rng: &mut impl CryptoRngCore,
+    ) {
+        let parties: HashMap<_, _> = (1..=number_of_parties)
+            .map(|party_id| {
+                let party_id: u16 = (party_id + 1).try_into().unwrap();
+
+                let witnesses = sample_witnesses::<REPETITIONS, Lang>(
+                    language_public_parameters,
+                    batch_size,
+                    rng,
+                );
+
+                let party: proof::aggregation::asynchronous::Party<
+                    Proof<REPETITIONS, Lang, PhantomData<()>>,
+                > = proof::aggregation::asynchronous::Party::Proof {
+                    witnesses,
+                    language_public_parameters: language_public_parameters.clone(),
+                    protocol_context: PhantomData,
+                    threshold,
+                };
+
+                (party_id, party)
+            })
+            .collect();
+
+        proof::mpc::test_helpers::session_terminates_successfully(
+            parties,
+            Some(threshold),
+            &(),
+            rng,
+        )
+        .unwrap();
     }
 
     pub fn invalid_proof_fails_verification<

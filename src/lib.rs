@@ -48,6 +48,17 @@ pub enum Error {
 /// Maurer result.
 pub type Result<T> = std::result::Result<T, Error>;
 
+impl TryInto<::proof::Error> for Error {
+    type Error = Error;
+
+    fn try_into(self) -> std::result::Result<::proof::Error, Self::Error> {
+        match self {
+            Error::Proof(e) => Ok(e),
+            e => Err(e),
+        }
+    }
+}
+
 impl TryInto<::proof::aggregation::Error> for Error {
     type Error = Error;
 
