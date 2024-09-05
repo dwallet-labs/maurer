@@ -253,7 +253,8 @@ mod tests {
     #[case(2)]
     #[case(3)]
     fn valid_proof_verifies(#[case] batch_size: usize) {
-        let language_public_parameters = language_public_parameters::<1, 1>();
+        let language_public_parameters =
+            language_public_parameters::<SOUND_PROOFS_REPETITIONS, 1>();
 
         test_helpers::valid_proof_verifies::<
             SOUND_PROOFS_REPETITIONS,
