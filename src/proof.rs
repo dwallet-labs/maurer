@@ -432,7 +432,7 @@ impl<
 #[cfg(any(test, feature = "benchmarking"))]
 #[allow(unused_imports)]
 pub(super) mod test_helpers {
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
     use std::marker::PhantomData;
 
     use super::*;
@@ -441,6 +441,7 @@ pub(super) mod test_helpers {
     use crate::Language;
     use criterion::measurement::{Measurement, WallTime};
     use group::PartyID;
+    use proof::aggregation::Instantiatable;
     use rand_core::OsRng;
 
     pub fn generate_valid_proof<
@@ -508,17 +509,30 @@ pub(super) mod test_helpers {
         batch_size: usize,
         rng: &mut impl CryptoRngCore,
     ) {
+        let parties: HashSet<_> = (1..=number_of_parties)
+            .map(u16::try_from)
+            .map(std::result::Result::unwrap)
+            .collect();
+
         let parties: HashMap<_, _> = (1..=number_of_parties)
             .map(|party_id| {
                 let party_id: u16 = (party_id + 1).try_into().unwrap();
 
+                let witnesses = sample_witnesses::<REPETITIONS, Lang>(
+                    language_public_parameters,
+                    batch_size,
+                    rng,
+                );
+
                 let party: proof::aggregation::asynchronous::Party<
                     Proof<REPETITIONS, Lang, PhantomData<()>>,
-                > = proof::aggregation::asynchronous::Party::new_proof_round_party(
-                    language_public_parameters.clone(),
-                    PhantomData,
+                > = proof::aggregation::asynchronous::Party::new_session(
+                    party_id,
                     threshold,
-                    batch_size,
+                    parties.clone(),
+                    PhantomData,
+                    language_public_parameters.clone(),
+                    witnesses,
                     rng,
                 )
                 .unwrap();

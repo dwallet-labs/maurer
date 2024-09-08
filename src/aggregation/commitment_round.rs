@@ -10,9 +10,10 @@ use crypto_bigint::rand_core::CryptoRngCore;
 use crypto_bigint::Random;
 use group::{ComputationalSecuritySizedNumber, GroupElement, PartyID};
 use proof::aggregation;
-use proof::aggregation::CommitmentRoundParty;
+use proof::aggregation::{CommitmentRoundParty, Instantiatable};
 use serde::Serialize;
 use std::collections::HashSet;
+use std::fmt::Debug;
 
 #[cfg_attr(any(test, feature = "test_helpers"), derive(Clone))]
 pub struct Party<
@@ -142,6 +143,38 @@ impl<
             randomizers,
             statement_masks,
         })
+    }
+}
+
+impl<
+        const REPETITIONS: usize,
+        Language: language::Language<REPETITIONS>,
+        ProtocolContext: Clone + Serialize + Debug + PartialEq + Eq,
+    > Instantiatable<Proof<REPETITIONS, Language, ProtocolContext>>
+    for aggregation::synchronous::Party<
+        super::Output<REPETITIONS, Language, ProtocolContext>,
+        Party<REPETITIONS, Language, ProtocolContext>,
+    >
+{
+    fn new_session(
+        party_id: PartyID,
+        _threshold: PartyID,
+        parties: HashSet<PartyID>,
+        protocol_context: ProtocolContext,
+        public_parameters: Language::PublicParameters,
+        witnesses: Vec<Language::WitnessSpaceGroupElement>,
+        rng: &mut impl CryptoRngCore,
+    ) -> std::result::Result<Self, <Self as proof::mpc::Party>::Error> {
+        let party = Party::new_session(
+            party_id,
+            parties,
+            public_parameters,
+            protocol_context,
+            witnesses,
+            rng,
+        )?;
+
+        Ok(party.into())
     }
 }
 
