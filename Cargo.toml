@@ -23,7 +23,7 @@ rstest = { version = "0.18", optional = true }
 rand_core = { version = "0.6", features = ["std"] }
 criterion = { version = "0.5", features = ["html_reports"] }
 rstest = { version = "0.18" }
-proof = { git = "https://github.com/dwallet-labs/proof.git", features = ["test_helpers"], branch = "mpc" }
+proof = { git = "https://github.com/dwallet-labs/proof.git", features = ["test_helpers"], rev = "a571ca9" }
 
 [features]
 test_helpers = ["dep:criterion", "dep:rand_core", "dep:rstest", "proof/test_helpers"]
